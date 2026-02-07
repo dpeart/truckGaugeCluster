@@ -1,0 +1,15 @@
+{
+  "idf.flashType": "UART",
+  "idf.port": "/dev/tty.usbmodem21101",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32p4"
+},
+  "clangd.path": "C:\\Users\\davep\\.espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\davep\\espf-projects\\center-cluster-esp32-p4\\build"
+  ],
+"idf.portWin": "COM7",
+"idf.currentSetup": "C:\\Users\\davep\\esp\\v5.5.2\\esp-idf",
+}

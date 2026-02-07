@@ -1,0 +1,24 @@
+{
+  "files": [
+    "actions.h",
+    "fonts.h",
+    "images.c",
+    "images.h",
+    "screens.c",
+    "screens.h",
+    "structs.h",
+    "styles.c",
+    "styles.h",
+    "ui.c",
+    "ui.h",
+    "ui_font_ibm_plex_mono_medium_24.c",
+    "ui_font_ibm_plex_mono_medium_30.c",
+    "ui_font_ibm_plex_mono_medium_35.c",
+    "ui_image_center.c",
+    "ui_image_high_beam.c",
+    "ui_image_left.c",
+    "ui_image_main_gauge_bg.c",
+    "ui_image_right.c",
+    "vars.h"
+  ]
+}

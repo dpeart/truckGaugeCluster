@@ -1,0 +1,26 @@
+#pragma once
+
+#include "GaugePacket.h"
+#include "esp_now.h"
+#include "esp_wifi.h"
+#include "esp_event.h"
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Queue for pulling packets from your UI task
+extern QueueHandle_t espnow_rx_queue;
+
+// Initialize ESP-NOW receiver on a specific channel
+esp_err_t espnow_receiver_init(uint8_t channel);
+
+// Non-blocking poll for new packets
+bool espnow_receiver_get(GaugePacket *out);
+
+#ifdef __cplusplus
+}
+#endif
