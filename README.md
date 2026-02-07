@@ -1,4 +1,4 @@
-truckGaugeCluster
+# truckGaugeCluster
 ESP‑IDF + LVGL v8.4 Automotive Gauge Cluster powered by ESP‑NOW, EEZ Studio 0.26.0, and Sequent Microsystems DAQ hardware
 This project implements a complete digital automotive gauge cluster using:
 
