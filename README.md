@@ -91,3 +91,6 @@ Regeneration‑proof code structure
 Modular screen state structs for indicator pointers
 
 High‑FPS rendering with minimal invalidation
+
+Starting config for the Waveshare boards from here:
+  https://github.com/traviscea/center-cluster-esp32-p4
