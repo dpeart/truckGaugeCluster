@@ -68,6 +68,7 @@
           },
           {
             "type": "border",
+            "selected": 0,
             "location": "bottom",
             "children": [
               {
@@ -186,9 +187,22 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 65,
+              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#a99d931c-6c15-42d2-8aca-5310ab299c67",
+                  "name": "Settings",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[smallGauge5.eez-project]:/settings",
+                    "subObjectPath": "[smallGauge5.eez-project]:/settings",
+                    "permanent": false
+                  },
+                  "icon": "material:settings"
+                },
                 {
                   "type": "tab",
                   "id": "#f66c885e-b362-4336-bda1-d1549e57b51f",
@@ -1066,7 +1080,13 @@
         "scrollLeft": 0
       },
       "selectionFront": {},
-      "selectionBack": {}
+      "selectionBack": {
+        "0": {
+          "0": {
+            "0": {}
+          }
+        }
+      }
     }
   },
   "activeOutputSection": 0,

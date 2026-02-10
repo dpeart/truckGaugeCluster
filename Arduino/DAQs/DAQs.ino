@@ -1,6 +1,8 @@
 #define DEBUG 1
-#include "Globals.h"
+// #include "config.h"
 #include "debug.h"
+#include "Globals.h"
+#include "GaugePacket.h"
 #include "SM_16UNIVIN.h"
 #include "SM_RTD.h"  // Temp sensors
 #include "SM_16DIGIN.h"
@@ -8,15 +10,14 @@
 #include "Adafruit_MCP9601.h"
 #include "Adafruit_MPU6050.h"
 #include "AuberinsSensors.h"  // Pressure sensors
-#include "GaugePacket.h"
-// #include "CruiseControl.h"
+#include "CruiseControl.h"
+#include "GNSS.h"
 
 #include <WiFi.h>
 #include <esp_now.h>
 #include "esp_wifi.h"
 
 bool DEBUG_SIMULATION_MODE = true;  // set false to use real DAQ data
-
 
 // -------------------- CRUISE / STATE --------------------
 
@@ -70,6 +71,7 @@ int accelerationZ = 0;
 int ignitionState = 0;
 
 unsigned long previousMillis = 0;  // Stores the last time the procedure was called
+unsigned long previousGPS = 0;     // Stores the last time the procedure was called
 
 // I2C pins for ESP32-S3 Wire1 (adjust to your board / Pi header)
 static const int SDA1_PIN = 3;  // Pi pin 3 equivalent
@@ -78,22 +80,84 @@ static const int SCL1_PIN = 5;  // Pi pin 5 equivalent
 // FRAM Memory Map
 // Odometer: 0x0
 
-SM_16_UNIVIN* adc_card;
-SM_16DIGIN* dig_card;
-SM_RTD* rtd_card;
+// Sequent cards on Wire1
+SM_16_UNIVIN adc_card(0, &Wire1);
+SM_16DIGIN dig_card(1, &Wire1);
+SM_RTD rtd_card(2, &Wire1);
 
-Adafruit_FRAM_I2C* fram;
-Adafruit_MCP9601* mcp;
-Adafruit_MPU6050* mpu;
+Adafruit_FRAM_I2C fram = Adafruit_FRAM_I2C();  // FRAM
+Adafruit_MCP9601 mcp;                          // EGT
+Adafruit_MPU6050 mpu;                          // Accelerometer
+GNSSModule gps;
+
+static GaugePacket pkt;
+
+// Broadcast MAC (shared by all sends)
+static uint8_t bcast[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 // -------------------- ESP-NOW CALLBACK (optional debug) --------------------
 
+void onEspNowSent(const wifi_tx_info_t *info, esp_now_send_status_t status) {
+  // Serial.print("SEND CALLBACK: ");
+  DB_PRINTLN(status == ESP_NOW_SEND_SUCCESS ? "SUCCESS" : "FAIL");
 
-void onSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("Send status: ");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Success" : "Fail");
+  if (info) {
+    Serial.print("SRC: ");
+    for (int i = 0; i < 6; i++) {
+      Serial.printf("%02X", info->src_addr[i]);
+      if (i < 5) Serial.print(":");
+    }
+    Serial.println();
+
+    Serial.print("DEST: ");
+    for (int i = 0; i < 6; i++) {
+      Serial.printf("%02X", info->des_addr[i]);
+      if (i < 5) Serial.print(":");
+    }
+    Serial.println();
+
+    Serial.print("TX status: ");
+    Serial.println(info->tx_status);
+
+    Serial.print("Rate: ");
+    Serial.println(info->rate);
+  }
 }
 
+// -------------------- ESP-NOW INIT (IDF 5.x / Arduino 3.4.x) --------------------
+
+void initEspNow() {
+  WiFi.mode(WIFI_MODE_STA);
+  WiFi.disconnect();
+
+  // Set channel BEFORE wifi_start()
+  esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
+
+  if (esp_wifi_start() == ESP_OK)
+    Serial.println("wifi_start OK");
+  else
+    Serial.println("wifi_start FAIL");
+
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("ESP-NOW init failed");
+    return;
+  }
+  Serial.println("ESP-NOW init success");
+
+  // esp_now_register_send_cb(onEspNowSent);
+
+  esp_now_peer_info_t peer = {};
+  memcpy(peer.peer_addr, bcast, 6);
+  peer.channel = 1;
+  peer.encrypt = false;
+  peer.ifidx = WIFI_IF_STA;  // REQUIRED in IDF 5.x
+
+  if (esp_now_add_peer(&peer) != ESP_OK) {
+    Serial.println("Failed to add ESP-NOW peer");
+  } else {
+    Serial.println("Broadcast peer added");
+  }
+}
 
 // -------------------- SETUP --------------------
 
@@ -101,76 +165,42 @@ void setup() {
   // Basic debug serial (optional)
   Serial.begin(115200);
   delay(500);
-  Serial.println("BOOTED");
-
-  Wire1.begin(SDA1_PIN, SCL1_PIN, 400000);
-
-  adc_card = new SM_16_UNIVIN(0, &Wire1);
-  dig_card = new SM_16DIGIN(1, &Wire1);
-  rtd_card = new SM_RTD(2, &Wire1);
-
-  fram = new Adafruit_FRAM_I2C();
-  mcp = new Adafruit_MCP9601();
-  mpu = new Adafruit_MPU6050();
+  gps.begin();
 
   // GPIOs
   pinMode(PWM_SPEED, INPUT);
   pinMode(PWM_TACH, INPUT);
-  pinMode(SHUTDOWN, OUTPUT);
+  // pinMode(SHUTDOWN, OUTPUT);
 
   // I2C for Sequent stack
   Wire1.begin(SDA1_PIN, SCL1_PIN, 400000);
 
-  // ESP-NOW init
-  WiFi.mode(WIFI_STA);  // 1. Put WiFi in STA mode
-
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("ESP-NOW init failed");
-    while (true) {
-      delay(100);
-    }
-  }
-
-  esp_now_register_send_cb(onEspNowSent);
-
-  // Broadcast peer (all gauges listen)
-  esp_now_peer_info_t peer = {};
-  memset(&peer, 0, sizeof(peer));
-  memset(peer.peer_addr, 0xFF, 6);  // broadcast MAC
-  peer.channel = 1;
-  peer.encrypt = false;
-
-  // esp_wifi_set_promiscuous(true);                  // 2. Allow channel change
-  // esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);  // 3. Set channel
-  // esp_wifi_set_promiscuous(false);                 // 4. Lock it in place
-
-  if (esp_now_add_peer(&peer) != ESP_OK) {
-    Serial.println("Failed to add ESP-NOW peer");
-  }
+  // ESP-NOW / WiFi
+  initEspNow();
 
   // Initialize Sequent cards
-  if (adc_card->begin()) {
+  if (adc_card.begin()) {
     DB_PRINT("ADC Sixteen Universal Inputs Card detected\n");
   } else {
     DB_PRINT("ADC Sixteen Universal Inputs Card NOT detected!\n");
   }
 
-  if (dig_card->begin()) {
+  if (dig_card.begin()) {
     DB_PRINT("DIG Sixteen Digital Inputs Card detected\n");
   } else {
     DB_PRINT("DIG Sixteen Digital Inputs Card NOT detected!\n");
   }
 
-  if (rtd_card->begin()) {
+  if (rtd_card.begin()) {
     DB_PRINT("RTD Inputs Card detected\n");
   } else {
     DB_PRINT("RTD Inputs Card NOT detected!\n");
   }
 
   // Initialize FRAM and read odometer value
-  if (fram->begin(I2C_ODOMETER_ADR, &Wire1)) {
+  if (fram.begin(I2C_ODOMETER_ADR, &Wire1)) {
     DB_PRINTLN("Found I2C FRAM");
-    fram->read(0, (uint8_t*)&odometer, sizeof(odometer));
+    fram.read(0, (uint8_t *)&odometer, sizeof(odometer));
     DB_PRINT("Initial Odometer Reading: ");
     DB_PRINTLN(odometer);
   } else {
@@ -178,13 +208,13 @@ void setup() {
   }
 
   // Initialize EGT reader
-  if (!mcp->begin(I2C_EGT_ADR, &Wire1)) {
+  if (!mcp.begin(I2C_EGT_ADR, &Wire1)) {
     DB_PRINTLN("Failed to find MCP9600 chip");
   } else {
     DB_PRINTLN("MCP9600 Found!");
-    mcp->setThermocoupleType(MCP9600_TYPE_K);
+    mcp.setThermocoupleType(MCP9600_TYPE_K);
     DB_PRINT("Thermocouple type: ");
-    switch (mcp->getThermocoupleType()) {
+    switch (mcp.getThermocoupleType()) {
       case MCP9600_TYPE_K:
         DB_PRINTLN("K");
         break;
@@ -195,17 +225,17 @@ void setup() {
   }
 
   // Initialize accelerometer
-  if (!mpu->begin(I2C_ACCEL_ADR, &Wire1)) {
-    DB_PRINTLN("Failed to find MPU6050 chip");
-  } else {
-    DB_PRINTLN("MPU6050 Found");
-    mpu->setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
-    mpu->setMotionDetectionThreshold(1);
-    mpu->setMotionDetectionDuration(20);
-    mpu->setInterruptPinLatch(true);
-    mpu->setInterruptPinPolarity(true);
-    mpu->setMotionInterrupt(true);
-  }
+  //   if (!mpu.begin(I2C_ACCEL_ADR, &Wire1)) {
+  //     DB_PRINTLN("Failed to find MPU6050 chip");
+  //   } else {
+  //     DB_PRINTLN("MPU6050 Found");
+  //     mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
+  //     mpu.setMotionDetectionThreshold(1);
+  //     mpu.setMotionDetectionDuration(20);
+  //     mpu.setInterruptPinLatch(true);
+  //     mpu.setInterruptPinPolarity(true);
+  //     mpu.setMotionInterrupt(true);
+  //   }
 }
 
 // -------------------- LOOP --------------------
@@ -213,63 +243,124 @@ void setup() {
 void loop() {
   unsigned long currentMillis = millis();
 
+  if (currentMillis - previousGPS >= 1000) {
+    previousGPS = currentMillis;
+    gps.update(pkt);
+
+    // --- Local Time Conversion ---
+    int lh, lm, ls, lmo, ld, ly;
+    gps.getLocalTime(lh, lm, ls, lmo, ld, ly);
+    DB_PRINTF("Local Time: %04d-%02d-%02d %02d:%02d:%02d\n", ly, lmo, ld, lh, lm, ls);
+
+    // GNSS Debug Output //
+    DB_PRINTLN("----- GNSS -----");
+
+    DB_PRINTF("UTC: %02d:%02d:%02d\n",
+              gps.utc.hour, gps.utc.minute, gps.utc.second);
+
+    DB_PRINTF("Date: %04d-%02d-%02d\n",
+              gps.date.year, gps.date.month, gps.date.date);
+
+    DB_PRINTF("Lat: %.6f\n", gps.latitudeDeg());
+    DB_PRINTF("Lon: %.6f\n", gps.longitudeDeg());
+    DB_PRINTF("Alt: %.2f m\n", gps.altitude);
+
+    DB_PRINTF("Sats Used: %d\n", gps.satsUsed);
+    DB_PRINTF("SOG: %.2f\n", gps.sog);
+    DB_PRINTF("COG: %.2f\n", gps.cog);
+    DB_PRINTF("Mode: %d\n", gps.mode);
+
+    // --- NEW: Heading + Compass Direction ---
+    DB_PRINTF("Heading: %.2f deg (%s)\n", gps.getHeading(), gps.getCompass8());
+
+    if (gps.hasFix()) {
+      DB_PRINTLN("Fix: YES (3D)");
+    } else {
+      DB_PRINTLN("Fix: NO");
+    }
+  }
+
+
   if (currentMillis - previousMillis >= 250) {
     previousMillis = currentMillis;
 
     if (DEBUG_SIMULATION_MODE) {
       generateDebugData();
+
+      fillGaugePacket(pkt,
+                      speed, rpm, gearPosition,
+                      iaTemp, oilTemp, coolantTemp,
+                      transTemp, ambientTemp, EGTemp,
+                      oilPressure, fuelPressure, boostPressure,
+                      accelerationX, accelerationY, accelerationZ,
+                      digitalPins);
+
+      // printGaugePacket(pkt);
+      esp_now_send(bcast, (uint8_t *)&pkt, sizeof(pkt));
+
     } else {
       readDigital();
-      // speed = calculateSpeed();
-      // rpm   = calculateRPM();
       readEGTemp();
       calculatePressures();
       calculateTemps();
-      readAccelIfMotion();
-      // updateMilesDriven(speed, 250); // if you want odometer from speed
+      // readAccelIfMotion();
 
-      sendGaugePacket();  // ESP-NOW broadcast
+      sendGaugePacket();
     }
   }
 }
+
 // -------------------- ESP-NOW SEND --------------------
-
 void sendGaugePacket() {
-  GaugePacket pkt;
+    // pkt is the persistent GaugePacket updated by GNSS every 1000ms
+    // and by DAQ every 250ms
 
-  pkt.speed = speed;
-  pkt.rpm = rpm;
-  pkt.gearPosition = gearPosition;
+    fillGaugePacket(
+        pkt,
 
-  pkt.iaTemp = iaTemp;
-  pkt.oilTemp = oilTemp;
-  pkt.coolantTemp = coolantTemp;
-  pkt.transTemp = transTemp;
-  pkt.ambientTemp = ambientTemp;
-  pkt.EGTemp = EGTemp;
+        // DAQ values
+        speed,
+        rpm,
+        gearPosition,
+        iaTemp,
+        oilTemp,
+        coolantTemp,
+        transTemp,
+        ambientTemp,
+        EGTemp,
+        oilPressure,
+        fuelPressure,
+        boostPressure,
+        accelerationX,
+        accelerationY,
+        accelerationZ,
+        digitalPins,
+        cruiseActive,
+        cruiseSetValue,
 
-  pkt.oilPressure = oilPressure;
-  pkt.fuelPressure = fuelPressure;
-  pkt.boostPressure = boostPressure;
+        // GNSS values already filled by gps.update(pkt)
+        pkt.year,
+        pkt.month,
+        pkt.day,
+        pkt.hour,
+        pkt.minute,
+        pkt.second,
+        pkt.headingDeg / 100.0f,
+        pkt.compass8
+    );
 
-  pkt.accelerationX = accelerationX;
-  pkt.accelerationY = accelerationY;
-  pkt.accelerationZ = accelerationZ;
-
-  pkt.digitalPins = digitalPins;
-
-  pkt.cruiseActive = cruiseActive;
-  pkt.cruiseSetValue = cruiseSetValue;
-
-  esp_now_send(NULL, (uint8_t*)&pkt, sizeof(pkt));  // NULL = broadcast
+    esp_now_send(bcast, (uint8_t *)&pkt, sizeof(pkt));
 }
+
 
 // -------------------- SENSORS / CALCS --------------------
 
+// (everything below here is unchanged)
+
 void calculatePressures() {
-  oilPressure = calculatePressure5PSI(adc_card->readAnalogMv(ADC_OIL_PRESSURE));
-  fuelPressure = calculatePressure5PSI(adc_card->readAnalogMv(ADC_FUEL_PRESSURE));
-  boostPressure = calculatePressure5PSI(adc_card->readAnalogMv(ADC_BOOST_PRESSURE));
+  oilPressure = calculatePressure5PSI(adc_card.readAnalogMv(ADC_OIL_PRESSURE));
+  fuelPressure = calculatePressure5PSI(adc_card.readAnalogMv(ADC_FUEL_PRESSURE));
+  boostPressure = calculatePressure5PSI(adc_card.readAnalogMv(ADC_BOOST_PRESSURE));
   DB_PRINT("oilP:");
   DB_PRINT(oilPressure);
   DB_PRINT(",");
@@ -282,11 +373,11 @@ void calculatePressures() {
 }
 
 void calculateTemps() {
-  iaTemp = int(rtd_card->readTemp(RTD_IA_TEMP) * INT_SCALING);
-  oilTemp = int(rtd_card->readTemp(RTD_OIL_TEMP) * INT_SCALING);
-  coolantTemp = int(rtd_card->readTemp(RTD_COOLANT_TEMP) * INT_SCALING);
-  transTemp = int(rtd_card->readTemp(RTD_TRANS_TEMP) * INT_SCALING);
-  ambientTemp = int(rtd_card->readTemp(RTD_AMBIENT_TEMP) * INT_SCALING);
+  iaTemp = int(rtd_card.readTemp(RTD_IA_TEMP) * INT_SCALING);
+  oilTemp = int(rtd_card.readTemp(RTD_OIL_TEMP) * INT_SCALING);
+  coolantTemp = int(rtd_card.readTemp(RTD_COOLANT_TEMP) * INT_SCALING);
+  transTemp = int(rtd_card.readTemp(RTD_TRANS_TEMP) * INT_SCALING);
+  ambientTemp = int(rtd_card.readTemp(RTD_AMBIENT_TEMP) * INT_SCALING);
   DB_PRINT("iaT:");
   DB_PRINT(iaTemp);
   DB_PRINT(",");
@@ -305,40 +396,40 @@ void calculateTemps() {
 }
 
 void readEGTemp() {
-  EGTemp = int(mcp->readThermocouple() * INT_SCALING);
+  EGTemp = int(mcp.readThermocouple() * INT_SCALING);
   DB_PRINT("EGT:");
   DB_PRINTLN(EGTemp);
 }
 
-void readAccelIfMotion() {
-  if (mpu->getMotionInterruptStatus()) {
-    sensors_event_t a, g, temp;
-    mpu->getEvent(&a, &g, &temp);
+// void readAccelIfMotion() {
+//   if (mpu.getMotionInterruptStatus()) {
+//     sensors_event_t a, g, temp;
+//     mpu.getEvent(&a, &g, &temp);
 
-    accelerationX = int(a.acceleration.x * INT_SCALING);
-    accelerationY = int(a.acceleration.y * INT_SCALING);
-    accelerationZ = int(a.acceleration.z * INT_SCALING);
+//     accelerationX = int(a.acceleration.x * INT_SCALING);
+//     accelerationY = int(a.acceleration.y * INT_SCALING);
+//     accelerationZ = int(a.acceleration.z * INT_SCALING);
 
-    DB_PRINT("AccelX:");
-    DB_PRINT(accelerationX);
-    DB_PRINT(",");
-    DB_PRINT("AccelY:");
-    DB_PRINT(accelerationY);
-    DB_PRINT(",");
-    DB_PRINT("AccelZ:");
-    DB_PRINT(accelerationZ);
-    DB_PRINT(", ");
-    DB_PRINT("GyroX:");
-    DB_PRINT(g.gyro.x);
-    DB_PRINT(",");
-    DB_PRINT("GyroY:");
-    DB_PRINT(g.gyro.y);
-    DB_PRINT(",");
-    DB_PRINT("GyroZ:");
-    DB_PRINT(g.gyro.z);
-    DB_PRINTLN("");
-  }
-}
+//     DB_PRINT("AccelX:");
+//     DB_PRINT(accelerationX);
+//     DB_PRINT(",");
+//     DB_PRINT("AccelY:");
+//     DB_PRINT(accelerationY);
+//     DB_PRINT(",");
+//     DB_PRINT("AccelZ:");
+//     DB_PRINT(accelerationZ);
+//     DB_PRINT(", ");
+//     DB_PRINT("GyroX:");
+//     DB_PRINT(g.gyro.x);
+//     DB_PRINT(",");
+//     DB_PRINT("GyroY:");
+//     DB_PRINT(g.gyro.y);
+//     DB_PRINT(",");
+//     DB_PRINT("GyroZ:");
+//     DB_PRINT(g.gyro.z);
+//     DB_PRINTLN("");
+//   }
+// }
 
 void updateMilesDriven(float speed, unsigned long timeMillis) {
   float timeHours = timeMillis / 3600000.0;
@@ -406,13 +497,13 @@ float calculateRPM() {
 }
 
 void readDigital() {
-  digitalPins = dig_card->readInputs();
+  digitalPins = dig_card.readInputs();
   DB_PRINT("Digital: ");
   DB_PRINTLN(digitalPins, BIN);
 }
 
 void readGearPosition() {
-  gearPosition = adc_card->readAnalogMv(ADC_GEAR);
+  gearPosition = adc_card.readAnalogMv(ADC_GEAR);
 }
 
 void generateDebugData() {
@@ -442,14 +533,14 @@ void generateDebugData() {
   boostPressure = 0 + 15 * sin(t * 0.06);
 
   // Acceleration
-  accelerationX = 0 + 200 * sin(t * 0.10);
-  accelerationY = 0 + 200 * sin(t * 0.13);
-  accelerationZ = 1000 + 50 * sin(t * 0.02);
+  // accelerationX = 0 + 200 * sin(t * 0.10);
+  // accelerationY = 0 + 200 * sin(t * 0.13);
+  // accelerationZ = 1000 + 50 * sin(t * 0.02);
 
   // Digital pins (simulate blink)
   digitalPins = (t % 8 == 0) ? 0xAAAA : 0x5555;
 
   // Cruise
-  cruiseActive = (t % 20 < 10);
-  cruiseSetValue = 65;
+  // cruiseActive = (t % 20 < 10);
+  // cruiseSetValue = 65;
 }

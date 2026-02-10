@@ -1,6 +1,7 @@
 {
   "navigation": {
     "selectedUserPageObject": "[smallGauge2.eez-project]:/userPages/0",
+    "selectedBitmapObject": "[smallGauge2.eez-project]:/bitmaps/2",
     "subnavigationSelectedItems": {}
   },
   "layoutModel": {
@@ -21,6 +22,7 @@
           },
           {
             "type": "border",
+            "selected": 2,
             "size": 240,
             "location": "right",
             "children": [
@@ -496,6 +498,88 @@
         }
       }
     },
+    "rootDockerSimulator": {
+      "version": 1,
+      "json": {
+        "global": {
+          "splitterSize": 4,
+          "splitterExtra": 4,
+          "tabEnableRename": false,
+          "borderEnableAutoHide": true
+        },
+        "borders": [],
+        "layout": {
+          "type": "row",
+          "id": "#7b4795f1-05bd-4c15-b31d-c15729870d64",
+          "children": [
+            {
+              "type": "tabset",
+              "id": "#8e1c3499-653c-4e44-9177-5cd6bc30e335",
+              "weight": 70,
+              "enableDrop": false,
+              "enableDrag": false,
+              "enableClose": false,
+              "enableTabStrip": true,
+              "children": [
+                {
+                  "type": "tab",
+                  "id": "DOCKER_SIMULATOR_PREVIEW",
+                  "name": "Preview",
+                  "component": "dockerSimulatorPreview",
+                  "enableClose": false,
+                  "icon": "material:computer"
+                }
+              ]
+            },
+            {
+              "type": "row",
+              "id": "#e3d11865-861f-478c-97e0-9b96c37cda20",
+              "weight": 30,
+              "children": [
+                {
+                  "type": "tabset",
+                  "id": "#205c88d9-511e-482f-adac-0b7d9b245a16",
+                  "weight": 50,
+                  "enableDrop": false,
+                  "enableDrag": false,
+                  "enableClose": false,
+                  "enableTabStrip": true,
+                  "children": [
+                    {
+                      "type": "tab",
+                      "id": "DOCKER_SIMULATOR_LOGS",
+                      "name": "Build Logs",
+                      "component": "dockerSimulatorLogs",
+                      "enableClose": false,
+                      "icon": "svg:log"
+                    }
+                  ]
+                },
+                {
+                  "type": "tabset",
+                  "id": "#d8841208-80f9-4621-a3f3-0f97edd6e745",
+                  "weight": 50,
+                  "enableDrop": false,
+                  "enableDrag": false,
+                  "enableClose": false,
+                  "enableTabStrip": true,
+                  "children": [
+                    {
+                      "type": "tab",
+                      "id": "DOCKER_SIMULATOR_PREVIEW_LOGS",
+                      "name": "Preview Logs",
+                      "component": "dockerSimulatorPreviewLogs",
+                      "enableClose": false,
+                      "icon": "svg:log"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
     "bitmaps": {
       "version": 2,
       "json": {
@@ -530,7 +614,8 @@
                       "component": "bitmaps",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -975,16 +1060,28 @@
       },
       "transform": {
         "translate": {
-          "x": -180,
-          "y": -180
+          "x": -245.625,
+          "y": -227.37499999999997
         },
-        "scale": 1
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
         "position": 0,
         "secondToPx": 200,
         "scrollLeft": 0
+      },
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {
+            "1": {
+              "$selected": true
+            }
+          },
+          "1": {},
+          "2": {}
+        }
       }
     }
   },
@@ -1002,11 +1099,11 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "ARC",
-    "PADDING"
+    "IMAGE"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1,
-  "implementationLanguage": "C"
+  "flowZoom": 1.25,
+  "implementationLanguage": "C",
+  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\smallGauge2\\iat.png"
 }
