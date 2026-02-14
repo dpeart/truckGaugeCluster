@@ -68,6 +68,9 @@ C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/nvs_flash
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/mbedtls/libmbedtls.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_wifi/libesp_wifi.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_netif/libesp_netif.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_wifi_remote/libespressif__esp_wifi_remote.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_hosted/libespressif__esp_hosted.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/console/libconsole.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_https_ota/libesp_https_ota.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_security/libesp_security.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/pthread/libpthread.a
@@ -147,7 +150,6 @@ C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_lcd/l
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/protobuf-c/libprotobuf-c.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/protocomm/libprotocomm.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/protobuf-c/libprotobuf-c.a
-C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/console/libconsole.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_local_ctrl/libesp_local_ctrl.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/protocomm/libprotocomm.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_https_server/libesp_https_server.a
@@ -163,6 +165,7 @@ C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/spiffs/li
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/usb/libusb.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/chmorgan__esp-file-iterator/libchmorgan__esp-file-iterator.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_codec_dev/libespressif__esp_codec_dev.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_hosted/libespressif__esp_hosted.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_lcd_jd9365/libespressif__esp_lcd_jd9365.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_lcd/libesp_lcd.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_lcd_touch/libespressif__esp_lcd_touch.a
@@ -171,6 +174,11 @@ C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/lvgl__lvgl/liblvgl__lvgl.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/lvgl__lvgl/liblvgl__lvgl.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_lvgl_port/liblvgl_port_lib.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_serial_slave_link/libespressif__esp_serial_slave_link.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__eppp_link/libespressif__eppp_link.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/esp_eth/libesp_eth.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_serial_slave_link/libespressif__esp_serial_slave_link.a
+C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_wifi_remote/libespressif__esp_wifi_remote.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/waveshare__esp32_p4_wifi6_touch_lcd_xc/libwaveshare__esp32_p4_wifi6_touch_lcd_xc.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_codec_dev/libespressif__esp_codec_dev.a
 C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/usb/libusb.a

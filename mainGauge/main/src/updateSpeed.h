@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "lvgl.h"
 #include "src/ui/screens.h" // Access to 'objects' and UI pointers
+#include "GaugePacket.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -18,6 +19,7 @@ extern "C"
     void update_tach_ui(int32_t current_rpm, int32_t target_rpm);
 
     void generateTurnSignalPattern();
+    void updateIndicators(const GaugePacket& pkt);
     void incrementOdometer();
 
 #ifdef __cplusplus

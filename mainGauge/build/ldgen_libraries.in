@@ -68,6 +68,9 @@ $<TARGET_FILE:__idf_nvs_flash>
 $<TARGET_FILE:idf::mbedtls>
 $<TARGET_FILE:__idf_esp_wifi>
 $<TARGET_FILE:__idf_esp_netif>
+$<TARGET_FILE:__idf_espressif__esp_wifi_remote>
+$<TARGET_FILE:__idf_espressif__esp_hosted>
+$<TARGET_FILE:__idf_console>
 $<TARGET_FILE:__idf_esp_https_ota>
 $<TARGET_FILE:__idf_esp_security>
 $<TARGET_FILE:__idf_pthread>
@@ -147,7 +150,6 @@ $<TARGET_FILE:idf::esp_lcd>
 $<TARGET_FILE:idf::protobuf-c>
 $<TARGET_FILE:idf::protocomm>
 $<TARGET_FILE:__idf_protobuf-c>
-$<TARGET_FILE:__idf_console>
 $<TARGET_FILE:idf::esp_local_ctrl>
 $<TARGET_FILE:__idf_protocomm>
 $<TARGET_FILE:__idf_esp_https_server>
@@ -163,6 +165,7 @@ $<TARGET_FILE:idf::spiffs>
 $<TARGET_FILE:idf::usb>
 $<TARGET_FILE:idf::chmorgan__esp-file-iterator>
 $<TARGET_FILE:idf::espressif__esp_codec_dev>
+$<TARGET_FILE:idf::espressif__esp_hosted>
 $<TARGET_FILE:idf::espressif__esp_lcd_jd9365>
 $<TARGET_FILE:__idf_esp_lcd>
 $<TARGET_FILE:idf::espressif__esp_lcd_touch>
@@ -171,6 +174,11 @@ $<TARGET_FILE:__idf_espressif__esp_lcd_touch>
 $<TARGET_FILE:idf::lvgl__lvgl>
 $<TARGET_FILE:__idf_lvgl__lvgl>
 $<TARGET_FILE:lvgl_port_lib>
+$<TARGET_FILE:idf::espressif__esp_serial_slave_link>
+$<TARGET_FILE:idf::espressif__eppp_link>
+$<TARGET_FILE:__idf_esp_eth>
+$<TARGET_FILE:__idf_espressif__esp_serial_slave_link>
+$<TARGET_FILE:idf::espressif__esp_wifi_remote>
 $<TARGET_FILE:idf::waveshare__esp32_p4_wifi6_touch_lcd_xc>
 $<TARGET_FILE:__idf_espressif__esp_codec_dev>
 $<TARGET_FILE:__idf_usb>

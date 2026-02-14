@@ -19,10 +19,11 @@ typedef struct _objects_t {
     lv_obj_t *main;
     lv_obj_t *speed;
     lv_obj_t *tach;
-    lv_obj_t *left;
     lv_obj_t *right;
+    lv_obj_t *left;
     lv_obj_t *high_beam;
     lv_obj_t *odometer;
+    lv_obj_t *center_cap;
 } objects_t;
 
 extern objects_t objects;

@@ -250,28 +250,28 @@ void loop() {
     // --- Local Time Conversion ---
     int lh, lm, ls, lmo, ld, ly;
     gps.getLocalTime(lh, lm, ls, lmo, ld, ly);
-    DB_PRINTF("Local Time: %04d-%02d-%02d %02d:%02d:%02d\n", ly, lmo, ld, lh, lm, ls);
+    // DB_PRINTF("Local Time: %04d-%02d-%02d %02d:%02d:%02d\n", ly, lmo, ld, lh, lm, ls);
 
-    // GNSS Debug Output //
-    DB_PRINTLN("----- GNSS -----");
+    // // GNSS Debug Output //
+    // DB_PRINTLN("----- GNSS -----");
 
-    DB_PRINTF("UTC: %02d:%02d:%02d\n",
-              gps.utc.hour, gps.utc.minute, gps.utc.second);
+    // DB_PRINTF("UTC: %02d:%02d:%02d\n",
+    //           gps.utc.hour, gps.utc.minute, gps.utc.second);
 
-    DB_PRINTF("Date: %04d-%02d-%02d\n",
-              gps.date.year, gps.date.month, gps.date.date);
+    // DB_PRINTF("Date: %04d-%02d-%02d\n",
+    //           gps.date.year, gps.date.month, gps.date.date);
 
-    DB_PRINTF("Lat: %.6f\n", gps.latitudeDeg());
-    DB_PRINTF("Lon: %.6f\n", gps.longitudeDeg());
-    DB_PRINTF("Alt: %.2f m\n", gps.altitude);
+    // DB_PRINTF("Lat: %.6f\n", gps.latitudeDeg());
+    // DB_PRINTF("Lon: %.6f\n", gps.longitudeDeg());
+    // DB_PRINTF("Alt: %.2f m\n", gps.altitude);
 
-    DB_PRINTF("Sats Used: %d\n", gps.satsUsed);
-    DB_PRINTF("SOG: %.2f\n", gps.sog);
-    DB_PRINTF("COG: %.2f\n", gps.cog);
-    DB_PRINTF("Mode: %d\n", gps.mode);
+    // DB_PRINTF("Sats Used: %d\n", gps.satsUsed);
+    // DB_PRINTF("SOG: %.2f\n", gps.sog);
+    // DB_PRINTF("COG: %.2f\n", gps.cog);
+    // DB_PRINTF("Mode: %d\n", gps.mode);
 
-    // --- NEW: Heading + Compass Direction ---
-    DB_PRINTF("Heading: %.2f deg (%s)\n", gps.getHeading(), gps.getCompass8());
+    // // --- NEW: Heading + Compass Direction ---
+    // DB_PRINTF("Heading: %.2f deg (%s)\n", gps.getHeading(), gps.getCompass8());
 
     if (gps.hasFix()) {
       DB_PRINTLN("Fix: YES (3D)");
@@ -285,26 +285,37 @@ void loop() {
     previousMillis = currentMillis;
 
     if (DEBUG_SIMULATION_MODE) {
+
+      // 1. Generate simulated vehicle data
       generateDebugData();
 
+      // 2. Fill ONLY the vehicle fields
       fillGaugePacket(pkt,
                       speed, rpm, gearPosition,
                       iaTemp, oilTemp, coolantTemp,
                       transTemp, ambientTemp, EGTemp,
                       oilPressure, fuelPressure, boostPressure,
                       accelerationX, accelerationY, accelerationZ,
-                      digitalPins);
+                      digitalPins,
+                      cruiseActive, cruiseSetValue);
 
-      // printGaugePacket(pkt);
+      // 3. Fill GNSS fields using the real GNSS module
+      gps.update(pkt);
+
+      printGaugePacket(pkt);
+
+      // 4. Send the fully populated packet
       esp_now_send(bcast, (uint8_t *)&pkt, sizeof(pkt));
 
     } else {
+
+      // REAL MODE — unchanged
       readDigital();
       readEGTemp();
       calculatePressures();
       calculateTemps();
-      // readAccelIfMotion();
 
+      // GNSS update happens inside sendGaugePacket()
       sendGaugePacket();
     }
   }
@@ -312,44 +323,43 @@ void loop() {
 
 // -------------------- ESP-NOW SEND --------------------
 void sendGaugePacket() {
-    // pkt is the persistent GaugePacket updated by GNSS every 1000ms
-    // and by DAQ every 250ms
+  // pkt is the persistent GaugePacket updated by GNSS every 1000ms
+  // and by DAQ every 250ms
 
-    fillGaugePacket(
-        pkt,
+  fillGaugePacket(
+    pkt,
 
-        // DAQ values
-        speed,
-        rpm,
-        gearPosition,
-        iaTemp,
-        oilTemp,
-        coolantTemp,
-        transTemp,
-        ambientTemp,
-        EGTemp,
-        oilPressure,
-        fuelPressure,
-        boostPressure,
-        accelerationX,
-        accelerationY,
-        accelerationZ,
-        digitalPins,
-        cruiseActive,
-        cruiseSetValue,
+    // DAQ values
+    speed,
+    rpm,
+    gearPosition,
+    iaTemp,
+    oilTemp,
+    coolantTemp,
+    transTemp,
+    ambientTemp,
+    EGTemp,
+    oilPressure,
+    fuelPressure,
+    boostPressure,
+    accelerationX,
+    accelerationY,
+    accelerationZ,
+    digitalPins,
+    cruiseActive,
+    cruiseSetValue,
 
-        // GNSS values already filled by gps.update(pkt)
-        pkt.year,
-        pkt.month,
-        pkt.day,
-        pkt.hour,
-        pkt.minute,
-        pkt.second,
-        pkt.headingDeg / 100.0f,
-        pkt.compass8
-    );
+    // GNSS values already filled by gps.update(pkt)
+    pkt.year,
+    pkt.month,
+    pkt.day,
+    pkt.hour,
+    pkt.minute,
+    pkt.second,
+    pkt.headingDeg / 100.0f,
+    pkt.compass8);
 
-    esp_now_send(bcast, (uint8_t *)&pkt, sizeof(pkt));
+  esp_now_send(bcast, (uint8_t *)&pkt, sizeof(pkt));
 }
 
 
@@ -506,15 +516,34 @@ void readGearPosition() {
   gearPosition = adc_card.readAnalogMv(ADC_GEAR);
 }
 
+void simulateDigitalPins() {
+  static uint16_t bit = 1;  // start at IND_OD (bit 0)
+  static int64_t lastChange = 0;
+
+  int64_t now = esp_timer_get_time();  // microseconds
+
+  if (now - lastChange < 500000)  // change every 0.5 sec
+    return;
+
+  lastChange = now;
+
+  digitalPins = bit;
+
+  // Shift left; wrap back to bit 0 after bit 15
+  bit <<= 1;
+  if (bit == 0 || bit > (1 << 15))
+    bit = 1;
+}
+
 void generateDebugData() {
   static uint32_t t = 0;
   t += 1;  // increments every loop (250ms)
 
-  // Speed 0–120 mph
-  speed = (int)(60 + 60 * sin(t * 0.05));
+  // Speed 0–140 mph
+  speed = (int)(70 + 70 * sin(t * 0.05));
 
-  // RPM 800–6500
-  rpm = (int)(3000 + 2500 * sin(t * 0.07));
+  // RPM 0–5000
+  rpm = (int)(2500 + 2500 * sin(t * 0.07));
 
   // Gear 1–6
   gearPosition = (int)(1 + (int)(3 + 2 * sin(t * 0.03)));
@@ -538,8 +567,8 @@ void generateDebugData() {
   // accelerationZ = 1000 + 50 * sin(t * 0.02);
 
   // Digital pins (simulate blink)
-  digitalPins = (t % 8 == 0) ? 0xAAAA : 0x5555;
-
+  // digitalPins = (t % 8 == 0) ? 0xAAAA : 0x5555;
+  simulateDigitalPins();
   // Cruise
   // cruiseActive = (t % 20 < 10);
   // cruiseSetValue = 65;

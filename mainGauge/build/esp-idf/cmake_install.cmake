@@ -569,6 +569,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_hosted/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_lcd_jd9365/cmake_install.cmake")
 endif()
 
@@ -590,6 +595,26 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_lvgl_port/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_serial_slave_link/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__eppp_link/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__wifi_remote_over_eppp/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("C:/Users/davep/espf-projects/truckGaugeCluster/mainGauge/build/esp-idf/espressif__esp_wifi_remote/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)

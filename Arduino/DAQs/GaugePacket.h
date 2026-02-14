@@ -77,15 +77,15 @@ inline void fillGaugePacket(
     uint16_t cruiseActive = 0,
     uint16_t cruiseSetValue = 0,
 
-    // GNSS data
-    uint16_t year = 0,
-    uint8_t  month = 0,
-    uint8_t  day = 0,
-    uint8_t  hour = 0,
-    uint8_t  minute = 0,
-    uint8_t  second = 0,
-    float    headingDeg = 0.0f,
-    const char *compass8 = "UNK"
+    // GNSS data (optional)
+    int16_t year = -1,
+    int8_t  month = -1,
+    int8_t  day = -1,
+    int8_t  hour = -1,
+    int8_t  minute = -1,
+    int8_t  second = -1,
+    float   headingDeg = NAN,
+    const char *compass8 = nullptr
 ) {
     // Vehicle
     pkt.speed          = speed;
@@ -112,23 +112,23 @@ inline void fillGaugePacket(
     pkt.cruiseActive   = cruiseActive;
     pkt.cruiseSetValue = cruiseSetValue;
 
-    // GNSS date/time
-    pkt.year           = year;
-    pkt.month          = month;
-    pkt.day            = day;
+    // GNSS — only overwrite if provided
+    if (year >= 0)   pkt.year = year;
+    if (month >= 0)  pkt.month = month;
+    if (day >= 0)    pkt.day = day;
 
-    pkt.hour           = hour;
-    pkt.minute         = minute;
-    pkt.second         = second;
+    if (hour >= 0)   pkt.hour = hour;
+    if (minute >= 0) pkt.minute = minute;
+    if (second >= 0) pkt.second = second;
 
-    // GNSS heading (scaled)
-    pkt.headingDeg     = (int16_t)(headingDeg * 100.0f);
+    if (!isnan(headingDeg))
+        pkt.headingDeg = (int16_t)(headingDeg * 100.0f);
 
-    // GNSS compass string
-    strncpy(pkt.compass8, compass8, sizeof(pkt.compass8));
-    pkt.compass8[sizeof(pkt.compass8)-1] = '\0';
+    if (compass8 != nullptr) {
+        strncpy(pkt.compass8, compass8, sizeof(pkt.compass8));
+        pkt.compass8[sizeof(pkt.compass8)-1] = '\0';
+    }
 }
-
 
 // ------------------------------------------------------------
 // printGaugePacket()

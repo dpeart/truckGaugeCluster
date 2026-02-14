@@ -1,7 +1,11 @@
 {
   "navigation": {
     "selectedUserPageObject": "[smallGauge5.eez-project]:/userPages/0",
-    "subnavigationSelectedItems": {}
+    "selectedFontObject": "[smallGauge5.eez-project]:/fonts/1",
+    "selectedBitmapObject": "[smallGauge5.eez-project]:/bitmaps/6",
+    "subnavigationSelectedItems": {
+      "variables-tab/sub-navigation/selected-item": "Actions"
+    }
   },
   "layoutModel": {
     "rootEditor": {
@@ -21,6 +25,7 @@
           },
           {
             "type": "border",
+            "selected": 2,
             "size": 240,
             "location": "right",
             "children": [
@@ -186,7 +191,7 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 65,
+              "weight": 52.34502446982056,
               "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
@@ -220,7 +225,7 @@
             {
               "type": "row",
               "id": "#5432b2e4-87ec-4ac1-b14b-859844bc7903",
-              "weight": 20,
+              "weight": 32.65497553017944,
               "children": [
                 {
                   "type": "tabset",
@@ -249,6 +254,14 @@
                       "component": "componentsPalette",
                       "enableClose": false,
                       "icon": "svg:components"
+                    },
+                    {
+                      "type": "tab",
+                      "id": "BREAKPOINTS_PALETTE",
+                      "name": "Breakpoints",
+                      "component": "breakpointsPanel",
+                      "enableClose": false,
+                      "icon": "svg:breakpoints_panel"
                     }
                   ]
                 }
@@ -626,7 +639,8 @@
                       "component": "bitmaps",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1083,8 +1097,9 @@
       "selectionBack": {
         "0": {
           "0": {
-            "0": {}
-          }
+            "1": {}
+          },
+          "1": {}
         }
       }
     }
@@ -1095,6 +1110,7 @@
   "searchMatchWholeWord": false,
   "replaceEnabled": false,
   "replaceText": "",
+  "pageRuntimeFrontFace": true,
   "breakpoints": {},
   "watchExpressions": [],
   "showComponentDescriptions": true,
@@ -1103,10 +1119,11 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "BACKGROUND"
+    "IMAGE"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
   "flowZoom": 1,
-  "implementationLanguage": "C"
+  "implementationLanguage": "C",
+  "openDialogDefaultPath": "C:\\Users\\davep\\OneDrive\\Documents\\Truck\\RealDash\\Images\\battery-warning-light.png"
 }

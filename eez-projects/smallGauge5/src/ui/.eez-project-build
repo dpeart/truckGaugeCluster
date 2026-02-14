@@ -1,0 +1,25 @@
+{
+  "files": [
+    "actions.h",
+    "fonts.h",
+    "images.c",
+    "images.h",
+    "screens.c",
+    "screens.h",
+    "structs.h",
+    "styles.c",
+    "styles.h",
+    "ui.c",
+    "ui.h",
+    "ui_font_ibm_plex_mono.c",
+    "ui_font_ibm_plex_mono_50.c",
+    "ui_image_battery_warning_light.c",
+    "ui_image_engine_temp_icon.c",
+    "ui_image_fuel_location_right.c",
+    "ui_image_low_washer_fluid.c",
+    "ui_image_od_off_indicator.c",
+    "ui_image_oil_pressure_indicator.c",
+    "ui_image_water_in_fuel.c",
+    "vars.h"
+  ]
+}

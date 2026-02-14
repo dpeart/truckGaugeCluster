@@ -1,6 +1,8 @@
 #include "updateSpeed.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "digitalPins.h"
+#include "GaugePacket.h"
 
 void update_left_turn(bool state)
 {
@@ -34,10 +36,11 @@ void incrementOdometer(void)
 {
     // Timer is firing 10× too fast, so divide by 10
     odo_divider++;
-    if (odo_divider < 10) {
-        return;   // skip this tick
+    if (odo_divider < 100)
+    {
+        return; // skip this tick
     }
-    odo_divider = 0;  // reset every 10 ticks
+    odo_divider = 0; // reset every 10 ticks
 
     // Now increment exactly 1/10 mile per second
     mileage_tenths++;
@@ -51,65 +54,34 @@ void incrementOdometer(void)
     lv_label_set_text(objects.odometer, odoStr);
 }
 
-void generateTurnSignalPattern()
+void updateIndicators(const GaugePacket &pkt)
 {
-    static int64_t lastChange = 0;
-    static uint8_t state = 0;
+    uint16_t pins = pkt.digitalPins;
 
-    int64_t now = esp_timer_get_time(); // microseconds
-
-    if (now - lastChange < 1000000)
-        return; // 1 second
-    lastChange = now;
-
-    switch (state)
-    {
-    case 0: // Left ON
-        update_left_turn(true);
-        update_right_turn(false);
-        break;
-
-    case 1: // Left OFF
-        update_left_turn(false);
-        update_right_turn(false);
-        break;
-
-    case 2: // Right ON
-        update_left_turn(false);
-        update_right_turn(true);
-        break;
-
-    case 3: // Right OFF
-        update_left_turn(false);
-        update_right_turn(false);
-        break;
-
-    case 4: // Both ON
-        update_left_turn(true);
-        update_right_turn(true);
-        update_high_beam(true);
-        break;
-
-    case 5: // Both OFF
-        update_left_turn(false);
-        update_right_turn(false);
-        update_high_beam(false);
-        break;
-    }
-
-    state = (state + 1) % 6;
+    update_left_turn(pins & IND_LEFT);
+    update_right_turn(pins & IND_RIGHT);
+    update_high_beam(pins & IND_HIGHBEAM);
 }
 
 // Callback for the LVGL animation engine
-static void meter_anim_cb(void *var, int32_t val)
+static void speed_anim_cb(void *var, int32_t val)
 {
     // Uses the 'speed' object from screens.h
-    lv_meter_set_indicator_value(objects.main, (lv_meter_indicator_t *)var, val);
+    lv_meter_set_indicator_value(objects.speed, (lv_meter_indicator_t *)var, val);
+    // ESP_LOGI("tag", "%d", val);
+}
+
+static void tach_anim_cb(void *var, int32_t val)
+{
+    // Uses the 'speed' object from screens.h
+    lv_meter_set_indicator_value(objects.tach, (lv_meter_indicator_t *)var, val);
     // ESP_LOGI("tag", "%d", val);
 }
 
 void update_speed_ui(int32_t current_speed, int32_t target_speed)
 {
+    int32_t current_scaled = current_speed * 5;
+    int32_t target_scaled = target_speed * 5;
     // Static pointer ensures we only find the needle once
     // lv_meter_indicator_t* speed_needle;
 
@@ -119,28 +91,38 @@ void update_speed_ui(int32_t current_speed, int32_t target_speed)
     // 2. Safety check: ensure screen is loaded and needle exists
     // if (!speed_needle) return;
 
+    // Kill any existing tach animation safely
+    lv_anim_del(screen_main_state.speed_indicator, speed_anim_cb);
+
     // 3. Setup and start the animation
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_exec_cb(&a, meter_anim_cb);
+    lv_anim_set_exec_cb(&a, speed_anim_cb);
     lv_anim_set_var(&a, screen_main_state.speed_indicator);
+    // lv_anim_set_path_cb(&a, lv_anim_path_ease_out); // Non-linear movement
+    // lv_anim_set_path_cb(&a, lv_anim_path_overshoot);  // bounces needle at end
 
     // Animate from current needle position to target
-    lv_anim_set_values(&a, current_speed, target_speed);
+    lv_anim_set_values(&a, current_scaled, target_scaled);
 
-    lv_anim_set_time(&a, 2300); // 300ms for a responsive feel
+    lv_anim_set_time(&a, 250); // 300ms for a responsive feel
 
     // lv_anim_set_time(&a, 500);
-    lv_anim_set_repeat_delay(&a, 250);
-    lv_anim_set_playback_time(&a, 500);
-    lv_anim_set_playback_delay(&a, 50);
-    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    // lv_anim_set_repeat_delay(&a, 250);
+    // lv_anim_set_playback_time(&a, 500);
+    // lv_anim_set_playback_delay(&a, 50);
+    // lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
 
     lv_anim_start(&a);
 }
 
 void update_tach_ui(int32_t current_rpm, int32_t target_rpm)
 {
+    // Scale for gauge RMP/10
+    int32_t current_scaled = current_rpm / 20;
+    int32_t target_scaled = target_rpm / 20;
+    ESP_LOGI("TAG", "CurrentRPM %d", current_scaled);
+    ESP_LOGI("TAG", "TargetRPM %d", target_scaled);
     // Static pointer ensures we only find the needle once
     // lv_meter_indicator_t* speed_needle;
 
@@ -150,22 +132,27 @@ void update_tach_ui(int32_t current_rpm, int32_t target_rpm)
     // 2. Safety check: ensure screen is loaded and needle exists
     // if (!speed_needle) return;
 
+    // Kill any existing tach animation safely
+    lv_anim_del(screen_main_state.tach_indicator, tach_anim_cb);
+
     // 3. Setup and start the animation
     lv_anim_t a;
     lv_anim_init(&a);
-    lv_anim_set_exec_cb(&a, meter_anim_cb);
+    lv_anim_set_exec_cb(&a, tach_anim_cb);
     lv_anim_set_var(&a, screen_main_state.tach_indicator);
+    // lv_anim_set_path_cb(&a, lv_anim_path_ease_out); // Non-linear movement
+    // lv_anim_set_path_cb(&a, lv_anim_path_overshoot);  // bounces needle at end
 
     // Animate from current needle position to target
-    lv_anim_set_values(&a, current_rpm, target_rpm);
+    lv_anim_set_values(&a, current_scaled, target_scaled);
 
-    lv_anim_set_time(&a, 500); // 300ms for a responsive feel
+    lv_anim_set_time(&a, 250); // 300ms for a responsive feel
 
     // lv_anim_set_time(&a, 500);
-    lv_anim_set_repeat_delay(&a, 250);
-    lv_anim_set_playback_time(&a, 500);
-    lv_anim_set_playback_delay(&a, 50);
-    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    // lv_anim_set_repeat_delay(&a, 250);
+    // lv_anim_set_playback_time(&a, 500);
+    // lv_anim_set_playback_delay(&a, 50);
+    // lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
 
     lv_anim_start(&a);
 }

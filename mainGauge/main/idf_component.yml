@@ -23,3 +23,5 @@ dependencies:
   espressif/esp_lcd_touch_gt911: '*'
   espressif/esp_lvgl_port: '*'
   waveshare/esp32_p4_wifi6_touch_lcd_xc: '*'
+  espressif/esp_hosted: '*'
+  espressif/esp_wifi_remote: '*'
