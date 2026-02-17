@@ -233,7 +233,7 @@
                   "majorTickColor": "#ffffff",
                   "labelGap": 30,
                   "scaleMin": 0,
-                  "scaleMax": 700,
+                  "scaleMax": 1410,
                   "scaleAngleRange": 280,
                   "scaleRotation": 130
                 }
@@ -341,7 +341,7 @@
                   "majorTickColor": "#ffffff",
                   "labelGap": 20,
                   "scaleMin": 0,
-                  "scaleMax": 250,
+                  "scaleMax": 5000,
                   "scaleAngleRange": 280,
                   "scaleRotation": 130
                 }

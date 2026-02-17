@@ -1,0 +1,20 @@
+# --- C/C++ compiler intermediates ---
+*.obj        # MSVC / Windows object files
+*.o          # GCC / Clang object files
+*.lo         # libtool object files
+*.la         # libtool library metadata
+*.a          # static libraries (optional)
+*.lib        # MSVC static libraries (optional)
+*.dll        # Windows shared libs (optional)
+*.so         # Linux shared libs (optional)
+*.dylib      # macOS shared libs (optional)
+*.pch        # precompiled headers
+*.gch        # GCC precompiled headers
+*.pdb        # MSVC debug symbols
+*.idb        # MSVC intermediate debug
+*.ilk        # MSVC incremental linker
+*.tlog       # MSVC build logs
+*.tmp        # generic temp files
+*.cache      # generic cache files
+build/
+**/build/
