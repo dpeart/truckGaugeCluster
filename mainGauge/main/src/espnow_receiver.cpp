@@ -21,9 +21,12 @@ QueueHandle_t espnow_rx_queue = nullptr;
 
 bool espnow_receiver_get(GaugePacket &out)
 {
+    if (!espnow_rx_queue)
+    {
+        return false;
+    }
     return xQueueReceive(espnow_rx_queue, &out, 0) == pdTRUE;
 }
-
 // -----------------------------------------------------------------------------
 // Hosted ESP-NOW backend (current implementation)
 // -----------------------------------------------------------------------------
@@ -166,10 +169,10 @@ static void uart_rx_task(void *param)
 
                 GaugePacket pkt;
                 memcpy(&pkt, buffer, sizeof(GaugePacket));
-                
+
                 ESP_LOGI(TAG, "uart_rx_task queue: %p", espnow_rx_queue);
 
-                BaseType_t ok = xQueueSend(espnow_rx_queue, &pkt, 0);
+                BaseType_t ok = xQueueSend(espnow_rx_queue, &pkt, pdMS_TO_TICKS(5));
                 if (!ok)
                 {
                     ESP_LOGW(TAG, "RX queue full, dropping UART packet");
@@ -179,13 +182,14 @@ static void uart_rx_task(void *param)
             break;
         }
     }
+    taskYIELD();
 }
 
 esp_err_t espnow_receiver_init(uint8_t channel)
 {
     ESP_LOGI(TAG, "Initializing UART bridge receiver");
 
-    espnow_rx_queue = xQueueCreate(10, sizeof(GaugePacket));
+    espnow_rx_queue = xQueueCreate(32, sizeof(GaugePacket));
     if (!espnow_rx_queue)
     {
         return ESP_FAIL;
@@ -231,10 +235,10 @@ esp_err_t espnow_receiver_init(uint8_t channel)
 void espnow_receiver_pump()
 {
     static uint32_t last_update_ms = 0;
-    const uint32_t now = lv_tick_get();   // LVGL-safe millisecond timer
+    const uint32_t now = lv_tick_get(); // LVGL-safe millisecond timer
 
     // Only allow updates every 250 ms
-    if (now - last_update_ms < 250)
+    if (now - last_update_ms < 16)
         return;
 
     GaugePacket pkt;

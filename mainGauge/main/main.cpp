@@ -26,41 +26,54 @@ static const char *TAG = "MAIN";
 // ------------------------------------------------------------
 // LVGL Task (Core 1)
 // ------------------------------------------------------------
+
+void lvgl_tick_task(void *arg)
+{
+    while (1)
+    {
+        lv_tick_inc(1); // advance LVGL time by 1 ms
+        vTaskDelay(1);  // sleep 1 ms
+    }
+}
+
 void runLVGLTask(void *arg)
 {
     GaugePacket pkt{};
     int32_t last_speed = -1;
     int32_t last_rpm = -1;
+    static float speed_display = 0.0f;
+    static float tach_display = 0.0f;
 
     for (;;)
     {
+        // Non-LVGL work first
+        espnow_receiver_pump(); // uses lv_tick_get only – OK
+        gauge_state_get(pkt);   // mutex-protected – OK
+
+        lvgl_port_lock(-1);
+
         // LVGL housekeeping
         lv_timer_handler();
 
-        // Pull from UART/ESP-NOW queue → update global state
-        espnow_receiver_pump();
-
-        // Read the latest state (thread-safe)
-        gauge_state_get(pkt);
-
-        // Update UI only when values change
+        // UI updates
         if (pkt.speed != last_speed)
         {
-            // ESP_LOGI("LVGL", "speed: last=%d new=%d", last_speed, pkt.speed);
-            update_speed_ui(last_speed < 0 ? 0 : last_speed, pkt.speed);
+            speed_display = speed_display * 0.85f + pkt.speed * 0.15f;
+            speed_anim_cb(screen_main_state.speed_indicator, (int)speed_display);
             last_speed = pkt.speed;
         }
 
         if (pkt.rpm != last_rpm)
         {
-            // ESP_LOGI("LVGL", "rpm:   last=%d new=%d", last_rpm, pkt.rpm);
-            update_tach_ui(last_rpm < 0 ? 0 : last_rpm, pkt.rpm);
+            tach_display = tach_display * 0.85f + pkt.rpm * 0.15f;
+            tach_anim_cb(screen_main_state.tach_indicator, (int)tach_display);
             last_rpm = pkt.rpm;
         }
 
-        updateIndicators(pkt);
-        // generateTurnSignalPattern();
-        incrementOdometer();
+        updateIndicators(pkt); // if this touches LVGL, it’s now safe
+        incrementOdometer();   // same here
+
+        lvgl_port_unlock();
 
         vTaskDelay(1);
     }
@@ -95,6 +108,18 @@ extern "C" void app_main(void)
         }};
 
     lv_display_t *disp = bsp_display_start_with_config(&cfg);
+
+    // Disable any pointer-type indev (GT911) created by the BSP
+    // lv_indev_t *indev = NULL;
+    // for (indev = lv_indev_get_next(NULL); indev != NULL; indev = lv_indev_get_next(indev))
+    // {
+    //     if (lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER)
+    //     {
+    //         lv_indev_delete(indev);
+    //         break;
+    //     }
+    // }
+
     bsp_display_backlight_on();
 
     bsp_display_lock(0);
@@ -104,9 +129,19 @@ extern "C" void app_main(void)
 
     // LVGL task on Core 1
     xTaskCreatePinnedToCore(
+        lvgl_tick_task,
+        "lvgl_tick",
+        2048,
+        NULL,
+        1, // low priority is fine
+        NULL,
+        1 // Core 1 (same as LVGL)
+    );
+
+    xTaskCreatePinnedToCore(
         runLVGLTask,
         "runLVGLTask",
-        4096,
+        12288,
         nullptr,
         10,
         nullptr,

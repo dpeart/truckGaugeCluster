@@ -281,7 +281,7 @@ void loop() {
   }
 
 
-  if (currentMillis - previousMillis >= 250) {
+  if (currentMillis - previousMillis >= 16) {
     previousMillis = currentMillis;
 
     if (DEBUG_SIMULATION_MODE) {
@@ -540,10 +540,15 @@ void generateDebugData() {
   t += 1;  // increments every loop (250ms)
 
   // Speed 0–140 mph
-  speed = (int)(70 + 70 * sin(t * 0.05));
+  static float speed_theta = 0.0f;
+  speed_theta += 0.006702f;  // one update every 16ms
+  speed = (int)(705.0f + 705.0f * sinf(speed_theta));
 
   // RPM 0–5000
-  rpm = (int)(2500 + 2500 * sin(t * 0.07));
+  static float tach_theta = 0.0f;
+  tach_theta += 0.03702f;  // one update every 16ms
+
+  rpm = (int)(2500 + 2500 * sin(tach_theta));
 
   // Gear 1–6
   gearPosition = (int)(1 + (int)(3 + 2 * sin(t * 0.03)));

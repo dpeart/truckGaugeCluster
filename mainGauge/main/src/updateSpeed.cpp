@@ -64,18 +64,18 @@ void updateIndicators(const GaugePacket &pkt)
 }
 
 // Callback for the LVGL animation engine
-static void speed_anim_cb(void *var, int32_t val)
+void speed_anim_cb(void *var, int32_t val)
 {
     // Uses the 'speed' object from screens.h
     lv_meter_set_indicator_value(objects.speed, (lv_meter_indicator_t *)var, val);
     // ESP_LOGI("tag", "%d", val);
 }
 
-static void tach_anim_cb(void *var, int32_t val)
+void tach_anim_cb(void *var, int32_t val)
 {
-    // Uses the 'speed' object from screens.h
+
+    // Update the indicator
     lv_meter_set_indicator_value(objects.tach, (lv_meter_indicator_t *)var, val);
-    // ESP_LOGI("tag", "%d", val);
 }
 
 void update_speed_ui(int32_t current_speed, int32_t target_speed)
@@ -90,9 +90,6 @@ void update_speed_ui(int32_t current_speed, int32_t target_speed)
 
     // 2. Safety check: ensure screen is loaded and needle exists
     // if (!speed_needle) return;
-
-    // Kill any existing tach animation safely
-    lv_anim_del(screen_main_state.speed_indicator, speed_anim_cb);
 
     // 3. Setup and start the animation
     lv_anim_t a;
@@ -131,9 +128,6 @@ void update_tach_ui(int32_t current_rpm, int32_t target_rpm)
 
     // 2. Safety check: ensure screen is loaded and needle exists
     // if (!speed_needle) return;
-
-    // Kill any existing tach animation safely
-    lv_anim_del(screen_main_state.tach_indicator, tach_anim_cb);
 
     // 3. Setup and start the animation
     lv_anim_t a;

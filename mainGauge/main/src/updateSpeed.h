@@ -22,6 +22,9 @@ extern "C"
     void updateIndicators(const GaugePacket& pkt);
     void incrementOdometer();
 
+    void speed_anim_cb(void *var, int32_t val);
+    void tach_anim_cb(void *var, int32_t val);
+
 #ifdef __cplusplus
 }
 #endif

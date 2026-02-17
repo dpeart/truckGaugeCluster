@@ -45,7 +45,7 @@ void create_screen_main() {
                 state->scale = scale;
                 lv_meter_set_scale_ticks(obj, scale, 2, 0, 10, lv_color_hex(0xffffffff));
                 lv_meter_set_scale_major_ticks(obj, scale, 10, 0, 20, lv_color_hex(0xffffffff), 30);
-                lv_meter_set_scale_range(obj, scale, 0, 700, 280, 130);
+                lv_meter_set_scale_range(obj, scale, 0, 1410, 280, 130);
                 {
                     lv_meter_indicator_t *indicator = lv_meter_add_arc(obj, scale, 0, lv_color_hex(0xffffffff), 0);
                     state->indicator = indicator;
@@ -78,7 +78,7 @@ void create_screen_main() {
                 state->scale1 = scale;
                 lv_meter_set_scale_ticks(obj, scale, 2, 0, 10, lv_color_hex(0xffffffff));
                 lv_meter_set_scale_major_ticks(obj, scale, 5, 0, 20, lv_color_hex(0xffffffff), 20);
-                lv_meter_set_scale_range(obj, scale, 0, 250, 280, 130);
+                lv_meter_set_scale_range(obj, scale, 0, 5000, 280, 130);
                 {
                     lv_meter_indicator_t *indicator = lv_meter_add_arc(obj, scale, 0, lv_color_hex(0xffffffff), 0);
                     state->indicator1 = indicator;
