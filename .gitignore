@@ -17,4 +17,3 @@
 *.tmp        # generic temp files
 *.cache      # generic cache files
 build/
-**/build/
