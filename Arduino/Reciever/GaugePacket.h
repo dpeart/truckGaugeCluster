@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <string.h>
+#include <math.h>   // for NAN, isnan
 
 typedef struct __attribute__((packed)) {
 
@@ -11,6 +12,7 @@ typedef struct __attribute__((packed)) {
   int16_t rpm;
   int16_t gearPosition;
 
+  int16_t fuelLevel;
   int16_t iaTemp;
   int16_t oilTemp;
   int16_t coolantTemp;
@@ -61,6 +63,7 @@ inline void fillGaugePacket(
     int16_t speed,
     int16_t rpm,
     int16_t gearPosition,
+    int16_t fuelLevel,
     int16_t iaTemp,
     int16_t oilTemp,
     int16_t coolantTemp,
@@ -77,20 +80,21 @@ inline void fillGaugePacket(
     uint16_t cruiseActive = 0,
     uint16_t cruiseSetValue = 0,
 
-    // GNSS data
-    uint16_t year = 0,
-    uint8_t  month = 0,
-    uint8_t  day = 0,
-    uint8_t  hour = 0,
-    uint8_t  minute = 0,
-    uint8_t  second = 0,
-    float    headingDeg = 0.0f,
-    const char *compass8 = "UNK"
+    // GNSS data (optional)
+    int16_t year = -1,
+    int8_t  month = -1,
+    int8_t  day = -1,
+    int8_t  hour = -1,
+    int8_t  minute = -1,
+    int8_t  second = -1,
+    float   headingDeg = NAN,
+    const char *compass8 = nullptr
 ) {
     // Vehicle
     pkt.speed          = speed;
     pkt.rpm            = rpm;
     pkt.gearPosition   = gearPosition;
+    pkt.fuelLevel      = fuelLevel;
 
     pkt.iaTemp         = iaTemp;
     pkt.oilTemp        = oilTemp;
@@ -112,23 +116,23 @@ inline void fillGaugePacket(
     pkt.cruiseActive   = cruiseActive;
     pkt.cruiseSetValue = cruiseSetValue;
 
-    // GNSS date/time
-    pkt.year           = year;
-    pkt.month          = month;
-    pkt.day            = day;
+    // GNSS — only overwrite if provided
+    if (year   >= 0) pkt.year   = (uint16_t)year;
+    if (month  >= 0) pkt.month  = (uint8_t)month;
+    if (day    >= 0) pkt.day    = (uint8_t)day;
 
-    pkt.hour           = hour;
-    pkt.minute         = minute;
-    pkt.second         = second;
+    if (hour   >= 0) pkt.hour   = (uint8_t)hour;
+    if (minute >= 0) pkt.minute = (uint8_t)minute;
+    if (second >= 0) pkt.second = (uint8_t)second;
 
-    // GNSS heading (scaled)
-    pkt.headingDeg     = (int16_t)(headingDeg * 100.0f);
+    if (!isnan(headingDeg))
+        pkt.headingDeg = (int16_t)(headingDeg * 100.0f);
 
-    // GNSS compass string
-    strncpy(pkt.compass8, compass8, sizeof(pkt.compass8));
-    pkt.compass8[sizeof(pkt.compass8)-1] = '\0';
+    if (compass8 != nullptr) {
+        strncpy(pkt.compass8, compass8, sizeof(pkt.compass8));
+        pkt.compass8[sizeof(pkt.compass8)-1] = '\0';
+    }
 }
-
 
 // ------------------------------------------------------------
 // printGaugePacket()
@@ -139,6 +143,7 @@ static inline void printGaugePacket(const GaugePacket &pkt) {
     Serial.print("Speed: ");          Serial.println(pkt.speed);
     Serial.print("RPM: ");            Serial.println(pkt.rpm);
     Serial.print("Gear: ");           Serial.println(pkt.gearPosition);
+    Serial.print("FuelLevel: ");      Serial.println(pkt.fuelLevel);
 
     Serial.print("IA Temp: ");        Serial.println(pkt.iaTemp);
     Serial.print("Oil Temp: ");       Serial.println(pkt.oilTemp);

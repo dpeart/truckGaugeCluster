@@ -88,7 +88,7 @@ void LVGL_Init(void)
     ESP_LOGI(TAG_LVGL, "Initialize LVGL library");
     lv_init();
     
-    lvgl_lock_init();   // <-- add this
+    // lvgl_lock_init();   // <-- add this
 
     lv_color_t *buf1 = heap_caps_malloc(LVGL_BUF_LEN * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
     assert(buf1);

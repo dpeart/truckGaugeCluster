@@ -54,6 +54,3 @@ idf_component_register(
         "./Wireless"
         "."
 )
-
-# Required so LVGL uses your local lv_conf.h
-target_compile_definitions(${COMPONENT_LIB} PUBLIC LV_CONF_INCLUDE_SIMPLE)

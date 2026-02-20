@@ -937,6 +937,146 @@
         "symbols": ""
       },
       "embeddedFontFileIndex": 0
+    },
+    {
+      "objID": "09dca6c1-731b-4531-8fd2-a8713c85b33b",
+      "name": "Robot-Mono-20",
+      "renderingEngine": "LVGL",
+      "source": {
+        "objID": "db9701f8-bb0e-49ba-b74b-af2d916e9760",
+        "filePath": "..\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf",
+        "size": 20
+      },
+      "bpp": 8,
+      "threshold": 128,
+      "height": 22,
+      "ascent": 17,
+      "descent": 5,
+      "glyphs": [],
+      "lvglRanges": "32-127, 176",
+      "lvglSymbols": "",
+      "lvglGlyphs": {
+        "encodings": [
+          {
+            "from": 32,
+            "to": 127
+          }
+        ],
+        "symbols": ""
+      },
+      "embeddedFontFileIndex": 0
+    },
+    {
+      "objID": "a295f5e4-7753-4455-fb94-294e37173d84",
+      "name": "Roboto-Mono-24",
+      "renderingEngine": "LVGL",
+      "source": {
+        "objID": "86ea24df-b144-4fc8-958a-d346ffd0a0e1",
+        "filePath": "..\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf",
+        "size": 24
+      },
+      "bpp": 8,
+      "threshold": 128,
+      "height": 26,
+      "ascent": 20,
+      "descent": 6,
+      "glyphs": [],
+      "lvglRanges": "32-127",
+      "lvglSymbols": "",
+      "lvglGlyphs": {
+        "encodings": [
+          {
+            "from": 32,
+            "to": 127
+          }
+        ],
+        "symbols": ""
+      },
+      "embeddedFontFileIndex": 0
+    },
+    {
+      "objID": "cf064f8b-8d3e-4315-ee82-b2ede8ab8ead",
+      "name": "Roboto-Mono-30",
+      "renderingEngine": "LVGL",
+      "source": {
+        "objID": "884948de-a311-4d8f-c28b-41f69f44225f",
+        "filePath": "..\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf",
+        "size": 30
+      },
+      "bpp": 8,
+      "threshold": 128,
+      "height": 32,
+      "ascent": 25,
+      "descent": 7,
+      "glyphs": [],
+      "lvglRanges": "32-127,176",
+      "lvglSymbols": "",
+      "lvglGlyphs": {
+        "encodings": [
+          {
+            "from": 32,
+            "to": 127
+          }
+        ],
+        "symbols": ""
+      },
+      "embeddedFontFileIndex": 0
+    },
+    {
+      "objID": "eb71433e-914e-455d-e670-4fcb2a83a2bb",
+      "name": "Roboto-Mono-35",
+      "renderingEngine": "LVGL",
+      "source": {
+        "objID": "256ce378-2bdc-4653-df6b-5fb609b3a82d",
+        "filePath": "..\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf",
+        "size": 35
+      },
+      "bpp": 8,
+      "threshold": 128,
+      "height": 38,
+      "ascent": 30,
+      "descent": 8,
+      "glyphs": [],
+      "lvglRanges": "32-127",
+      "lvglSymbols": "",
+      "lvglGlyphs": {
+        "encodings": [
+          {
+            "from": 32,
+            "to": 127
+          }
+        ],
+        "symbols": ""
+      },
+      "embeddedFontFileIndex": 0
+    },
+    {
+      "objID": "ca5fcf34-9ae7-4fea-d1cf-f34949f5143e",
+      "name": "Roboto-Mono-40",
+      "renderingEngine": "LVGL",
+      "source": {
+        "objID": "e5e438b3-3eb9-47de-baf6-b87fc5ddf42f",
+        "filePath": "..\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf",
+        "size": 40
+      },
+      "bpp": 8,
+      "threshold": 128,
+      "height": 44,
+      "ascent": 34,
+      "descent": 10,
+      "glyphs": [],
+      "lvglRanges": "32-127",
+      "lvglSymbols": "",
+      "lvglGlyphs": {
+        "encodings": [
+          {
+            "from": 32,
+            "to": 127
+          }
+        ],
+        "symbols": ""
+      },
+      "embeddedFontFileIndex": 0
     }
   ],
   "bitmaps": [

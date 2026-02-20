@@ -58,19 +58,19 @@ void create_screen_main() {
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.obj0 = obj;
-            lv_obj_set_pos(obj, 199, 39);
+            lv_obj_set_pos(obj, 266, 182);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_text_font(obj, &ui_font_roboto_mono_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_font(obj, &ui_font_robot_mono_20, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "PSI");
         }
         {
             lv_obj_t *obj = lv_label_create(parent_obj);
             objects.obj1 = obj;
-            lv_obj_set_pos(obj, 118, 39);
+            lv_obj_set_pos(obj, 76, 189);
             lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
             lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-            lv_obj_set_style_text_font(obj, &ui_font_roboto_mono_30, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_text_font(obj, &ui_font_robot_mono_20, LV_PART_MAIN | LV_STATE_DEFAULT);
             lv_label_set_text(obj, "°F");
         }
         {

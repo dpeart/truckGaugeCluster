@@ -10,7 +10,7 @@
 #include "ST77916.h"  // LCD driver
 #include "PCF85063.h" // RTC
 #include "QMI8658.h"  // IMU
-#include "SD_MMC.h"   // (optional, init commented out)
+// #include "SD_MMC.h"   // (optional, init commented out)
 #include "Wireless.h" // radio code
 #include "TCA9554PWR.h"
 #include "BAT_Driver.h"
@@ -19,8 +19,9 @@
 // nvs_flash.h was already included above; no need to pull it twice
 
 #define LV_CONF_INCLUDE_SIMPLE
+#include "lv_conf.h"
 #include "lvgl.h"
-#include "esp_lvgl_port.h"
+// #include "esp_lvgl_port.h"
 #include "LVGL_Driver.h" // <-- THIS IS THE FIX YOU NEEDED
 
 // UI + app headers
@@ -28,25 +29,37 @@
 #include "src/updateUI.h"
 #include "src/GaugePacket.h"
 #include "src/espnow_receiver.h"
-// espnow_task isn't currently used; receiver updates global state directly
 #include "src/lvgl_lock.h"
+
+// Allocate full double buffer size in PSRAM
+#define LVGL_BUF_LEN (EXAMPLE_LCD_WIDTH * EXAMPLE_LCD_HEIGHT)
 
 static const char *TAG = "MAIN";
 
-// Provided by LCD driver (you do NOT own these)
-extern esp_lcd_panel_io_handle_t io_handle;
-extern esp_lcd_panel_handle_t panel_handle;
-extern esp_lcd_touch_handle_t tp;
-
 static void lvgl_task(void *arg)
 {
+    static bool first = true;
+
     while (1)
     {
         lvgl_lock();
         lv_timer_handler();
+
+        if (first)
+        {
+            ESP_LOGI("LVGL", "creating UI");
+            ui_init();
+            ui_tick();
+            ui_ready = true;     // now the UI really exists
+            lvgl_started = true; // LVGL + UI are both ready
+            first = false;
+            ESP_LOGI("LVGL", "set flags: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
+                     ui_ready, lvgl_started, &ui_ready, &lvgl_started);
+        }
+
         lvgl_unlock();
 
-        vTaskDelay(pdMS_TO_TICKS(5)); // 5–10 ms is typical
+        vTaskDelay(pdMS_TO_TICKS(5));
     }
 }
 
@@ -66,9 +79,18 @@ void gauge_task(void *arg)
     static float oil_pressure_display = 0.0f;
     static float fuel_level_display = 0.0f;
 
+    // Because guage_task starts before the UI is fully initialized, we wait here until the UI signals it's ready for updates.
+    // This prevents us from trying to update LVGL objects that haven't been created yet.
+    while (!ui_ready || !lvgl_started)
+    {
+        ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
+                 ui_ready, lvgl_started, &ui_ready, &lvgl_started);
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+
     while (1)
     {
-        // NEW: no pump call needed
+
         gauge_state_get(&pkt);
 
         lvgl_lock();
@@ -78,29 +100,40 @@ void gauge_task(void *arg)
             ESP_LOGI(TAG, "lastCoolant: %d, currentCoolant: %d", last_coolant, pkt.coolantTemp);
 
             coolant_display = coolant_display * 0.85f + pkt.coolantTemp * 0.15f;
-            coolant_anim_cb(screen_main_state.coolant_temp, (int)coolant_display);
+
+            meter_anim_cb(objects.coolant_temp,
+                          screen_main_state.coolant_temp,
+                          (int)coolant_display);
+
             last_coolant = pkt.coolantTemp;
         }
 
         if (pkt.oilPressure != last_oil_pressure)
         {
             ESP_LOGI(TAG, "lastOilPressure: %d, currentOilPressure: %d", last_oil_pressure, pkt.oilPressure);
+
             oil_pressure_display = oil_pressure_display * 0.85f + pkt.oilPressure * 0.15f;
-            oil_pressure_anim_cb(screen_main_state.oil_pressure, (int)oil_pressure_display);
+
+            meter_anim_cb(objects.oil_pressure,
+                          screen_main_state.oil_pressure,
+                          (int)oil_pressure_display);
+
             last_oil_pressure = pkt.oilPressure;
         }
 
         if (pkt.fuelLevel != last_fuel_level)
         {
             ESP_LOGI(TAG, "lastfuel_level: %d, currentfuel_level: %d", last_fuel_level, pkt.fuelLevel);
+
             fuel_level_display = fuel_level_display * 0.85f + pkt.fuelLevel * 0.15f;
-            fuel_level_anim_cb(objects.fuel_level, (int)fuel_level_display);
+
+            arc_anim_cb(objects.fuel_level, (int)fuel_level_display);
+
             last_fuel_level = pkt.fuelLevel;
         }
-
         lvgl_unlock();
 
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(16));
     }
 }
 
@@ -109,7 +142,7 @@ void gauge_task(void *arg)
 // ------------------------------------------------------------
 void Driver_Loop(void *parameter)
 {
-    Wireless_Init();
+    // Wireless_Init();
 
     while (1)
     {
@@ -127,7 +160,7 @@ void Driver_Init(void)
     BAT_Init();
     I2C_Init();
     EXIO_Init();
-    Flash_Searching();
+    // Flash_Searching();  // SD card support is disabled for now; un-comment if you need filesystem access
     PCF85063_Init();
     QMI8658_Init();
 
@@ -146,7 +179,9 @@ void Driver_Init(void)
 // ------------------------------------------------------------
 void app_main(void)
 {
-    // esp_log_level_set("*", ESP_LOG_NONE);
+    esp_log_level_set("*", ESP_LOG_NONE);    // silence everything
+    esp_log_level_set("LVGL", ESP_LOG_INFO); // enable only LVGL logs
+
     ESP_LOGI(TAG, "Starting Truck Gauge Cluster");
 
     // Initialize NVS as wifi needs it
@@ -158,19 +193,19 @@ void app_main(void)
     }
 
     // Give panel power rails, SPI, and touch time to stabilize
-    vTaskDelay(pdMS_TO_TICKS(250));
+    // vTaskDelay(pdMS_TO_TICKS(50));
 
     ESP_ERROR_CHECK(ret);
-    espnow_receiver_init(1);
-
-    gauge_state_init();
-
     Driver_Init();
     // SD card support is disabled for now; un-comment if you need filesystem access
     // SD_Init();
     LCD_Init();
 
+    // Backlight_Init();
+    Set_Backlight(100);
+
     LVGL_Init();
+    lvgl_lock_init(); // <-- add this
 
     // Start LVGL task
     xTaskCreatePinnedToCore(
@@ -183,10 +218,9 @@ void app_main(void)
         1 // or 0, just be consistent with your other tasks
     );
 
-    lvgl_lock();
-    ui_init();
-    ui_tick();
-    lvgl_unlock();
+    espnow_receiver_init(1);
+
+    gauge_state_init();
 
     // Gauge update task on Core 0
     xTaskCreatePinnedToCore(
@@ -194,12 +228,7 @@ void app_main(void)
         "gauge_task",
         12288,
         NULL,
-        3,
+        5,
         NULL,
         0);
-
-    // while (1)
-    // {
-    //     vTaskDelay(pdMS_TO_TICKS(10));
-    // }
 }

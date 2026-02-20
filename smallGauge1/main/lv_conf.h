@@ -11,6 +11,8 @@
  *    - add the path as include path
  */
 
+ #define LV_CONF_INCLUDE_SIMPLE
+
 /* clang-format off */
 #if 1 /*Set it to "1" to enable content*/
 
@@ -286,7 +288,7 @@
 
 /*1: Show the used memory and the memory fragmentation
  * Requires LV_MEM_CUSTOM = 0*/
-#define LV_USE_MEM_MONITOR 1
+#define LV_USE_MEM_MONITOR 0
 #if LV_USE_MEM_MONITOR
     #define LV_USE_MEM_MONITOR_POS LV_ALIGN_BOTTOM_MIDDLE
 #endif

@@ -77,6 +77,8 @@ extern int speed;
 extern int rpm;
 extern int gearPosition;
 
+extern int fuelLevel;
+
 // Temp
 extern int EGTemp;
 extern int iaTemp;

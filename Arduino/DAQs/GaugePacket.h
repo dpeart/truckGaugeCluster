@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <string.h>
+#include <math.h>   // for NAN, isnan
 
 typedef struct __attribute__((packed)) {
 
@@ -11,6 +12,7 @@ typedef struct __attribute__((packed)) {
   int16_t rpm;
   int16_t gearPosition;
 
+  int16_t fuelLevel;
   int16_t iaTemp;
   int16_t oilTemp;
   int16_t coolantTemp;
@@ -61,6 +63,7 @@ inline void fillGaugePacket(
     int16_t speed,
     int16_t rpm,
     int16_t gearPosition,
+    int16_t fuelLevel,
     int16_t iaTemp,
     int16_t oilTemp,
     int16_t coolantTemp,
@@ -91,6 +94,7 @@ inline void fillGaugePacket(
     pkt.speed          = speed;
     pkt.rpm            = rpm;
     pkt.gearPosition   = gearPosition;
+    pkt.fuelLevel      = fuelLevel;
 
     pkt.iaTemp         = iaTemp;
     pkt.oilTemp        = oilTemp;
@@ -113,13 +117,13 @@ inline void fillGaugePacket(
     pkt.cruiseSetValue = cruiseSetValue;
 
     // GNSS — only overwrite if provided
-    if (year >= 0)   pkt.year = year;
-    if (month >= 0)  pkt.month = month;
-    if (day >= 0)    pkt.day = day;
+    if (year   >= 0) pkt.year   = (uint16_t)year;
+    if (month  >= 0) pkt.month  = (uint8_t)month;
+    if (day    >= 0) pkt.day    = (uint8_t)day;
 
-    if (hour >= 0)   pkt.hour = hour;
-    if (minute >= 0) pkt.minute = minute;
-    if (second >= 0) pkt.second = second;
+    if (hour   >= 0) pkt.hour   = (uint8_t)hour;
+    if (minute >= 0) pkt.minute = (uint8_t)minute;
+    if (second >= 0) pkt.second = (uint8_t)second;
 
     if (!isnan(headingDeg))
         pkt.headingDeg = (int16_t)(headingDeg * 100.0f);
@@ -139,6 +143,7 @@ static inline void printGaugePacket(const GaugePacket &pkt) {
     Serial.print("Speed: ");          Serial.println(pkt.speed);
     Serial.print("RPM: ");            Serial.println(pkt.rpm);
     Serial.print("Gear: ");           Serial.println(pkt.gearPosition);
+    Serial.print("FuelLevel: ");      Serial.println(pkt.fuelLevel);
 
     Serial.print("IA Temp: ");        Serial.println(pkt.iaTemp);
     Serial.print("Oil Temp: ");       Serial.println(pkt.oilTemp);

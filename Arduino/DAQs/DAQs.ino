@@ -48,6 +48,7 @@ const float wheelDiameterInches = 20.0;  // Wheel diameter in inches (example va
 int speed = 0;
 int rpm = 0;
 int gearPosition = 0;
+int fuelLevel = 0;
 
 // Temp
 int EGTemp = 0;
@@ -292,6 +293,7 @@ void loop() {
       // 2. Fill ONLY the vehicle fields
       fillGaugePacket(pkt,
                       speed, rpm, gearPosition,
+                      fuelLevel,  // <-- add this
                       iaTemp, oilTemp, coolantTemp,
                       transTemp, ambientTemp, EGTemp,
                       oilPressure, fuelPressure, boostPressure,
@@ -328,11 +330,10 @@ void sendGaugePacket() {
 
   fillGaugePacket(
     pkt,
-
-    // DAQ values
     speed,
     rpm,
     gearPosition,
+    fuelLevel,  // <-- add this
     iaTemp,
     oilTemp,
     coolantTemp,
@@ -348,8 +349,6 @@ void sendGaugePacket() {
     digitalPins,
     cruiseActive,
     cruiseSetValue,
-
-    // GNSS values already filled by gps.update(pkt)
     pkt.year,
     pkt.month,
     pkt.day,
@@ -553,16 +552,18 @@ void generateDebugData() {
   // Gear 1–6
   gearPosition = (int)(1 + (int)(3 + 2 * sin(t * 0.03)));
 
+  fuelLevel = 50 + 50 * sin(t * 0.04);  // Fuel Level
+
   // Temps (scaled)
   iaTemp = 200 + 50 * sin(t * 0.04);  // Intake air temp
-  oilTemp = 220 + 40 * sin(t * 0.02);
-  coolantTemp = 210 + 30 * sin(t * 0.025);
+  oilTemp = 220 + 40 * sin(t * 0.05);
+  coolantTemp = 200 + 50 * sin(t * 0.05);
   transTemp = 190 + 20 * sin(t * 0.03);
   ambientTemp = 150 + 10 * sin(t * 0.01);
   EGTemp = 800 + 200 * sin(t * 0.05);  // EGT swings nicely
 
   // Pressures
-  oilPressure = 40 + 10 * sin(t * 0.04);
+  oilPressure = 45 + 45 * sin(t * 0.04);
   fuelPressure = 55 + 5 * sin(t * 0.03);
   boostPressure = 0 + 15 * sin(t * 0.06);
 
