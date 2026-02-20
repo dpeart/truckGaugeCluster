@@ -656,7 +656,7 @@
               "useAngle": false,
               "rangeMin": 0,
               "rangeMinType": "literal",
-              "rangeMax": 12,
+              "rangeMax": 16,
               "rangeMaxType": "literal",
               "value": 6,
               "valueType": "literal",

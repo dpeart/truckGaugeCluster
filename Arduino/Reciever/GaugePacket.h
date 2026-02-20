@@ -12,6 +12,7 @@ typedef struct __attribute__((packed)) {
   int16_t rpm;
   int16_t gearPosition;
 
+  int16_t batteryLevel;
   int16_t fuelLevel;
   int16_t iaTemp;
   int16_t oilTemp;
@@ -64,6 +65,7 @@ inline void fillGaugePacket(
     int16_t rpm,
     int16_t gearPosition,
     int16_t fuelLevel,
+    int16_t batteryLevel,
     int16_t iaTemp,
     int16_t oilTemp,
     int16_t coolantTemp,
@@ -95,6 +97,7 @@ inline void fillGaugePacket(
     pkt.rpm            = rpm;
     pkt.gearPosition   = gearPosition;
     pkt.fuelLevel      = fuelLevel;
+    pkt.batteryLevel      = batteryLevel;
 
     pkt.iaTemp         = iaTemp;
     pkt.oilTemp        = oilTemp;
@@ -144,6 +147,7 @@ static inline void printGaugePacket(const GaugePacket &pkt) {
     Serial.print("RPM: ");            Serial.println(pkt.rpm);
     Serial.print("Gear: ");           Serial.println(pkt.gearPosition);
     Serial.print("FuelLevel: ");      Serial.println(pkt.fuelLevel);
+    Serial.print("BatteryLevel: ");      Serial.println(pkt.batteryLevel);
 
     Serial.print("IA Temp: ");        Serial.println(pkt.iaTemp);
     Serial.print("Oil Temp: ");       Serial.println(pkt.oilTemp);

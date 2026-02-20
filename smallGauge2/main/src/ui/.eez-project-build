@@ -1,0 +1,24 @@
+{
+  "files": [
+    "actions.h",
+    "fonts.h",
+    "images.c",
+    "images.h",
+    "screens.c",
+    "screens.h",
+    "structs.h",
+    "styles.c",
+    "styles.h",
+    "ui.c",
+    "ui.h",
+    "ui_font_robot_mono_20.c",
+    "ui_font_roboto_mono_24.c",
+    "ui_font_roboto_mono_30.c",
+    "ui_font_roboto_mono_35.c",
+    "ui_font_roboto_mono_40.c",
+    "ui_image_battery_voltage.c",
+    "ui_image_egt.c",
+    "ui_image_iat.c",
+    "vars.h"
+  ]
+}

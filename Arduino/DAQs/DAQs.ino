@@ -49,6 +49,7 @@ int speed = 0;
 int rpm = 0;
 int gearPosition = 0;
 int fuelLevel = 0;
+int batteryLevel = 0;
 
 // Temp
 int EGTemp = 0;
@@ -294,6 +295,7 @@ void loop() {
       fillGaugePacket(pkt,
                       speed, rpm, gearPosition,
                       fuelLevel,  // <-- add this
+                      batteryLevel,  // <-- add this
                       iaTemp, oilTemp, coolantTemp,
                       transTemp, ambientTemp, EGTemp,
                       oilPressure, fuelPressure, boostPressure,
@@ -334,6 +336,7 @@ void sendGaugePacket() {
     rpm,
     gearPosition,
     fuelLevel,  // <-- add this
+    batteryLevel,  // <-- add this
     iaTemp,
     oilTemp,
     coolantTemp,
@@ -553,14 +556,15 @@ void generateDebugData() {
   gearPosition = (int)(1 + (int)(3 + 2 * sin(t * 0.03)));
 
   fuelLevel = 50 + 50 * sin(t * 0.04);  // Fuel Level
+  batteryLevel = 8 + 8 * sin(t * 0.04);  // Fuel Level
 
   // Temps (scaled)
-  iaTemp = 200 + 50 * sin(t * 0.04);  // Intake air temp
+  iaTemp = 125 + 75 * sin(t * 0.04);  // Intake air temp
   oilTemp = 220 + 40 * sin(t * 0.05);
   coolantTemp = 200 + 50 * sin(t * 0.05);
   transTemp = 190 + 20 * sin(t * 0.03);
   ambientTemp = 150 + 10 * sin(t * 0.01);
-  EGTemp = 800 + 200 * sin(t * 0.05);  // EGT swings nicely
+  EGTemp = 800 + 700 * sin(t * 0.05);  // EGT swings nicely
 
   // Pressures
   oilPressure = 45 + 45 * sin(t * 0.04);
