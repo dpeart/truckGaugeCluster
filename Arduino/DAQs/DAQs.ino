@@ -563,7 +563,7 @@ void generateDebugData() {
   oilTemp = 220 + 40 * sin(t * 0.05);
   coolantTemp = 200 + 50 * sin(t * 0.05);
   transTemp = 190 + 20 * sin(t * 0.03);
-  ambientTemp = 150 + 10 * sin(t * 0.01);
+  ambientTemp = 65 + 85 * sin(t * 0.01);
   EGTemp = 800 + 700 * sin(t * 0.05);  // EGT swings nicely
 
   // Pressures

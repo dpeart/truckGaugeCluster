@@ -183,8 +183,8 @@
                   "identifier": "Heading",
                   "leftUnit": "px",
                   "topUnit": "px",
-                  "widthUnit": "content",
-                  "heightUnit": "content",
+                  "widthUnit": "px",
+                  "heightUnit": "px",
                   "children": [],
                   "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
                   "hiddenFlagType": "literal",
@@ -202,7 +202,8 @@
                       "MAIN": {
                         "DEFAULT": {
                           "text_font": "Roboto-Condensed-50",
-                          "text_color": "#ffffff"
+                          "text_color": "#ffffff",
+                          "text_align": "CENTER"
                         }
                       }
                     }
@@ -235,8 +236,8 @@
                   "identifier": "Time",
                   "leftUnit": "px",
                   "topUnit": "px",
-                  "widthUnit": "content",
-                  "heightUnit": "content",
+                  "widthUnit": "px",
+                  "heightUnit": "px",
                   "children": [],
                   "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
                   "hiddenFlagType": "literal",
@@ -254,7 +255,8 @@
                       "MAIN": {
                         "DEFAULT": {
                           "text_font": "Roboto-Condensed-50",
-                          "text_color": "#ffffff"
+                          "text_color": "#ffffff",
+                          "text_align": "RIGHT"
                         }
                       }
                     }
@@ -267,115 +269,11 @@
                   "recolor": false
                 },
                 {
-                  "objID": "28c61cbe-726e-4d86-f8df-b96740b5e44a",
-                  "type": "LVGLLabelWidget",
-                  "left": 232,
-                  "top": 138,
-                  "width": 23,
-                  "height": 16,
-                  "customInputs": [],
-                  "customOutputs": [],
-                  "style": {
-                    "objID": "98a23f4a-7c4d-4ad9-fb63-ba14815ab032",
-                    "useStyle": "default",
-                    "conditionalStyles": [],
-                    "childStyles": []
-                  },
-                  "hiddenInEditor": true,
-                  "timeline": [],
-                  "eventHandlers": [],
-                  "identifier": "AM/PM",
-                  "leftUnit": "px",
-                  "topUnit": "px",
-                  "widthUnit": "content",
-                  "heightUnit": "content",
-                  "children": [],
-                  "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
-                  "hiddenFlagType": "literal",
-                  "clickableFlagType": "literal",
-                  "flagScrollbarMode": "",
-                  "flagScrollDirection": "",
-                  "scrollSnapX": "",
-                  "scrollSnapY": "",
-                  "checkedStateType": "literal",
-                  "disabledStateType": "literal",
-                  "states": "",
-                  "localStyles": {
-                    "objID": "c2831ec6-16d5-4c30-d3b3-38bfb3687e40",
-                    "definition": {
-                      "MAIN": {
-                        "DEFAULT": {
-                          "text_font": "IBMPlex-Mono-50",
-                          "text_color": "#ffffff"
-                        }
-                      }
-                    }
-                  },
-                  "group": "",
-                  "groupIndex": 0,
-                  "text": "AM",
-                  "textType": "literal",
-                  "longMode": "WRAP",
-                  "recolor": false
-                },
-                {
-                  "objID": "078a4ea0-0ab7-4c51-9042-4effacf95b4a",
-                  "type": "LVGLLabelWidget",
-                  "left": 84,
-                  "top": 191,
-                  "width": 198,
-                  "height": 31,
-                  "customInputs": [],
-                  "customOutputs": [],
-                  "style": {
-                    "objID": "0f8cc724-5afe-4a23-ea89-bc4ba7afcd1e",
-                    "useStyle": "default",
-                    "conditionalStyles": [],
-                    "childStyles": []
-                  },
-                  "hiddenInEditor": true,
-                  "timeline": [],
-                  "eventHandlers": [],
-                  "identifier": "Date",
-                  "leftUnit": "px",
-                  "topUnit": "px",
-                  "widthUnit": "content",
-                  "heightUnit": "content",
-                  "children": [],
-                  "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
-                  "hiddenFlagType": "literal",
-                  "clickableFlagType": "literal",
-                  "flagScrollbarMode": "",
-                  "flagScrollDirection": "",
-                  "scrollSnapX": "",
-                  "scrollSnapY": "",
-                  "checkedStateType": "literal",
-                  "disabledStateType": "literal",
-                  "states": "",
-                  "localStyles": {
-                    "objID": "4cc757da-ffc2-4c1e-d027-0cb1ee174c00",
-                    "definition": {
-                      "MAIN": {
-                        "DEFAULT": {
-                          "text_font": "IBMPlex-Mono",
-                          "text_color": "#ffffff"
-                        }
-                      }
-                    }
-                  },
-                  "group": "",
-                  "groupIndex": 0,
-                  "text": "01 Feb 2026",
-                  "textType": "literal",
-                  "longMode": "WRAP",
-                  "recolor": false
-                },
-                {
                   "objID": "e323c474-2d6a-4b97-c24d-2c6b35d9c319",
                   "type": "LVGLLabelWidget",
                   "left": 123,
                   "top": 254,
-                  "width": 50,
+                  "width": 75,
                   "height": 54,
                   "customInputs": [],
                   "customOutputs": [],
@@ -391,8 +289,8 @@
                   "identifier": "AmbientTemp",
                   "leftUnit": "px",
                   "topUnit": "px",
-                  "widthUnit": "content",
-                  "heightUnit": "content",
+                  "widthUnit": "px",
+                  "heightUnit": "px",
                   "children": [],
                   "widgetFlags": "CLICK_FOCUSABLE|GESTURE_BUBBLE|PRESS_LOCK|SCROLLABLE|SCROLL_CHAIN_HOR|SCROLL_CHAIN_VER|SCROLL_ELASTIC|SCROLL_MOMENTUM|SCROLL_WITH_ARROW|SNAPPABLE",
                   "hiddenFlagType": "literal",
@@ -410,14 +308,15 @@
                       "MAIN": {
                         "DEFAULT": {
                           "text_font": "Roboto-Condensed-50",
-                          "text_color": "#ffffff"
+                          "text_color": "#ffffff",
+                          "text_align": "RIGHT"
                         }
                       }
                     }
                   },
                   "group": "",
                   "groupIndex": 0,
-                  "text": "70",
+                  "text": "120",
                   "textType": "literal",
                   "longMode": "WRAP",
                   "recolor": false
@@ -425,7 +324,7 @@
                 {
                   "objID": "b3129be9-2b1b-4103-b319-537a15628fce",
                   "type": "LVGLLabelWidget",
-                  "left": 183,
+                  "left": 194,
                   "top": 254,
                   "width": 43,
                   "height": 54,
@@ -534,7 +433,7 @@
                   "hiddenInEditor": true,
                   "timeline": [],
                   "eventHandlers": [],
-                  "identifier": "waterInFuel",
+                  "identifier": "water_in_fuel",
                   "leftUnit": "px",
                   "topUnit": "px",
                   "widthUnit": "content",
@@ -593,7 +492,7 @@
                   "hiddenInEditor": true,
                   "timeline": [],
                   "eventHandlers": [],
-                  "identifier": "LowWasherFluid",
+                  "identifier": "low_washer_fluid",
                   "leftUnit": "px",
                   "topUnit": "px",
                   "widthUnit": "content",

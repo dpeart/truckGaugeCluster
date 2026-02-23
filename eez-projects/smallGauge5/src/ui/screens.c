@@ -12,9 +12,6 @@
 
 objects_t objects;
 
-static const char *screen_names[] = { "Main" };
-static const char *object_names[] = { "main", "info", "heading", "time", "am_pm", "date", "ambient_temp", "temp_unit", "indicators", "water_in_fuel", "low_washer_fluid", "low_fuel", "engine_temp", "low_battery" };
-
 //
 // Event handlers
 //
@@ -26,8 +23,6 @@ lv_obj_t *tick_value_change_obj;
 //
 
 void create_screen_main() {
-    void *flowState = getFlowState(0, 0);
-    (void)flowState;
     lv_obj_t *obj = lv_obj_create(0);
     objects.main = obj;
     lv_obj_set_pos(obj, 0, 0);
@@ -54,58 +49,42 @@ void create_screen_main() {
                     // Heading
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.heading = obj;
-                    lv_obj_set_pos(obj, 150, 54);
-                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                    lv_obj_set_style_text_font(obj, &ui_font_ibm_plex_mono_50, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_pos(obj, 146, 54);
+                    lv_obj_set_size(obj, 69, 54);
+                    lv_obj_set_style_text_font(obj, &ui_font_roboto_condensed_50, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_label_set_text(obj, "NW");
                 }
                 {
                     // Time
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.time = obj;
-                    lv_obj_set_pos(obj, 78, 138);
-                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                    lv_obj_set_style_text_font(obj, &ui_font_ibm_plex_mono_50, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_pos(obj, 124, 154);
+                    lv_obj_set_size(obj, 113, 54);
+                    lv_obj_set_style_text_font(obj, &ui_font_roboto_condensed_50, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_label_set_text(obj, "12:00");
-                }
-                {
-                    // AM/PM
-                    lv_obj_t *obj = lv_label_create(parent_obj);
-                    objects.am_pm = obj;
-                    lv_obj_set_pos(obj, 232, 138);
-                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                    lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "AM");
-                }
-                {
-                    // Date
-                    lv_obj_t *obj = lv_label_create(parent_obj);
-                    objects.date = obj;
-                    lv_obj_set_pos(obj, 84, 191);
-                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                    lv_obj_set_style_text_font(obj, &ui_font_ibm_plex_mono, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "01 Feb 2026");
                 }
                 {
                     // AmbientTemp
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.ambient_temp = obj;
                     lv_obj_set_pos(obj, 123, 254);
-                    lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                    lv_obj_set_style_text_font(obj, &ui_font_ibm_plex_mono_50, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_size(obj, 75, 54);
+                    lv_obj_set_style_text_font(obj, &ui_font_roboto_condensed_50, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_label_set_text(obj, "70");
+                    lv_obj_set_style_text_align(obj, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_label_set_text(obj, "120");
                 }
                 {
                     // TempUnit
                     lv_obj_t *obj = lv_label_create(parent_obj);
                     objects.temp_unit = obj;
-                    lv_obj_set_pos(obj, 183, 254);
+                    lv_obj_set_pos(obj, 194, 254);
                     lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-                    lv_obj_set_style_text_font(obj, &ui_font_ibm_plex_mono_50, LV_PART_MAIN | LV_STATE_DEFAULT);
+                    lv_obj_set_style_text_font(obj, &ui_font_roboto_condensed_50, LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_obj_set_style_text_color(obj, lv_color_hex(0xffffffff), LV_PART_MAIN | LV_STATE_DEFAULT);
                     lv_label_set_text(obj, "°F");
                 }
@@ -127,7 +106,7 @@ void create_screen_main() {
             {
                 lv_obj_t *parent_obj = obj;
                 {
-                    // waterInFuel
+                    // water_in_fuel
                     lv_obj_t *obj = lv_img_create(parent_obj);
                     objects.water_in_fuel = obj;
                     lv_obj_set_pos(obj, 105, 105);
@@ -137,7 +116,7 @@ void create_screen_main() {
                     lv_obj_set_style_img_recolor_opa(obj, 1255, LV_PART_MAIN | LV_STATE_DEFAULT);
                 }
                 {
-                    // LowWasherFluid
+                    // low_washer_fluid
                     lv_obj_t *obj = lv_img_create(parent_obj);
                     objects.low_washer_fluid = obj;
                     lv_obj_set_pos(obj, 105, 105);
@@ -187,8 +166,6 @@ void create_screen_main() {
 }
 
 void tick_screen_main() {
-    void *flowState = getFlowState(0, 0);
-    (void)flowState;
 }
 
 typedef void (*tick_screen_func_t)();
@@ -207,8 +184,13 @@ void tick_screen_by_id(enum ScreensEnum screenId) {
 //
 
 ext_font_desc_t fonts[] = {
-    { "IBMPlex-Mono", &ui_font_ibm_plex_mono },
-    { "IBMPlex Mono-50", &ui_font_ibm_plex_mono_50 },
+    { "Roboto-Condensed-50", &ui_font_roboto_condensed_50 },
+    { "Roboto-Condensed-25", &ui_font_roboto_condensed_25 },
+    { "Robot-Mono-20", &ui_font_robot_mono_20 },
+    { "Roboto-Mono-24", &ui_font_roboto_mono_24 },
+    { "Roboto-Mono-30", &ui_font_roboto_mono_30 },
+    { "Roboto-Mono-35", &ui_font_roboto_mono_35 },
+    { "Roboto-Mono-40", &ui_font_roboto_mono_40 },
 #if LV_FONT_MONTSERRAT_8
     { "MONTSERRAT_8", &lv_font_montserrat_8 },
 #endif
@@ -275,12 +257,16 @@ ext_font_desc_t fonts[] = {
 };
 
 //
+// Color themes
+//
+
+uint32_t active_theme_index = 0;
+
+//
 //
 //
 
 void create_screens() {
-    
-    eez_flow_init_fonts(fonts, sizeof(fonts) / sizeof(ext_font_desc_t));
 
 // Set default LVGL theme
     lv_disp_t *dispp = lv_disp_get_default();
@@ -288,9 +274,6 @@ void create_screens() {
     lv_disp_set_theme(dispp, theme);
     
     // Initialize screens
-    eez_flow_init_screen_names(screen_names, sizeof(screen_names) / sizeof(const char *));
-    eez_flow_init_object_names(object_names, sizeof(object_names) / sizeof(const char *));
-    
     // Create screens
     create_screen_main();
 }

@@ -20,8 +20,6 @@ typedef struct _objects_t {
     lv_obj_t *info;
     lv_obj_t *heading;
     lv_obj_t *time;
-    lv_obj_t *am_pm;
-    lv_obj_t *date;
     lv_obj_t *ambient_temp;
     lv_obj_t *temp_unit;
     lv_obj_t *indicators;
