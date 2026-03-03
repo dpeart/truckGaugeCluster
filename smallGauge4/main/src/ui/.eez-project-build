@@ -1,0 +1,21 @@
+{
+  "files": [
+    "actions.h",
+    "fonts.h",
+    "images.c",
+    "images.h",
+    "screens.c",
+    "screens.h",
+    "structs.h",
+    "styles.c",
+    "styles.h",
+    "ui.c",
+    "ui.h",
+    "ui_font_roboto_mono_30.c",
+    "ui_image_fuel_pressure.c",
+    "ui_image_oil_pressure.c",
+    "ui_image_trans_temp.c",
+    "ui_image_turbo.c",
+    "vars.h"
+  ]
+}

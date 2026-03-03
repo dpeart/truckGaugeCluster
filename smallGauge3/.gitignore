@@ -1,0 +1,28 @@
+# ESP-IDF build artifacts
+/build/
+/managed_components/
+/.venv/
+/dist/
+/__pycache__/
+
+# VS Code / IDE
+.vscode/
+.idea/
+
+# IDF cache
+/.idf_source_env.*
+
+# Local config (keep defaults instead)
+sdkconfig
+sdkconfig.old
+
+# Crash dumps, logs
+*.log
+
+# Binaries you might generate
+*.bin
+*.elf
+*.map
+
+# SD card content (mp3s, etc.)
+/sdcard/
