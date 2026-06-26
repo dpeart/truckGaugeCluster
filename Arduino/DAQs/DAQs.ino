@@ -560,7 +560,7 @@ void generateDebugData() {
 
   // Temps (scaled)
   iaTemp = 125 + 75 * sin(t * 0.04);  // Intake air temp
-  oilTemp = 220 + 40 * sin(t * 0.05);
+  oilTemp = 225 + 75 * sin(t * 0.05);
   coolantTemp = 200 + 50 * sin(t * 0.05);
   transTemp = 190 + 20 * sin(t * 0.03);
   ambientTemp = 65 + 85 * sin(t * 0.01);
@@ -568,8 +568,8 @@ void generateDebugData() {
 
   // Pressures
   oilPressure = 45 + 45 * sin(t * 0.04);
-  fuelPressure = 55 + 5 * sin(t * 0.03);
-  boostPressure = 0 + 15 * sin(t * 0.06);
+  fuelPressure = 15 + 15 * sin(t * 0.03);
+  boostPressure = 30 + 30 * sin(t * 0.06);
 
   // Acceleration
   // accelerationX = 0 + 200 * sin(t * 0.10);

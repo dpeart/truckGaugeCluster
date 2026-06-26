@@ -10,6 +10,6 @@
     "--query-driver=**",
     "--compile-commands-dir=c:\\Users\\davep\\espf-projects\\center-cluster-esp32-p4\\build"
   ],
-"idf.portWin": "COM9",
-"idf.currentSetup": "C:\\Users\\davep\\esp\\v5.5.2\\esp-idf",
+"idf.portWin": "COM11",
+"idf.currentSetup": "C:\\Espressif\\.espressif\\v5.5.4\\esp-idf",
 }
