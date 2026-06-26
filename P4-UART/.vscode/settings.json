@@ -1,0 +1,12 @@
+{
+  "idf.customExtraVars": {},
+  "clangd.path": "C:\\Espressif\\tools\\esp-clang\\16.0.1-fe4f10a809\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=**",
+    "--compile-commands-dir=c:\\Users\\davep\\espf-projects\\truckGaugeCluster\\mainGauge\\build"
+  ],
+  "idf.currentSetup": "C:\\Espressif\\.espressif\\v5.3.5\\esp-idf",
+  "idf.portWin": "COM11",
+  "idf.flashType": "UART"
+}
