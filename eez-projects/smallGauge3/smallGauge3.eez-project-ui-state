@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[smallGauge3.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[smallGauge3.eez-project]:/userPages/1",
     "selectedBitmapObject": "[smallGauge3.eez-project]:/bitmaps/1",
     "subnavigationSelectedItems": {}
   },
@@ -22,7 +22,7 @@
           },
           {
             "type": "border",
-            "selected": 2,
+            "selected": 1,
             "size": 240,
             "location": "right",
             "children": [
@@ -164,7 +164,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -187,28 +188,27 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 65,
+              "weight": 57.642857142857146,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
                   "id": "#001f67d6-71ad-40d4-8661-5f6ec44df31a",
-                  "name": "Main",
+                  "name": "Settings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[smallGauge3.eez-project]:/userPages/0",
+                    "objectPath": "[smallGauge3.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
               "id": "#cb5176ba-086a-4326-8ad8-fb9d06d14d26",
-              "weight": 20,
+              "weight": 27.357142857142858,
               "children": [
                 {
                   "type": "tabset",
@@ -1060,10 +1060,10 @@
       },
       "transform": {
         "translate": {
-          "x": -28.15952380952382,
-          "y": -254.3398338099887
+          "x": -276.9448051948051,
+          "y": -355.2123921018165
         },
-        "scale": 1.1
+        "scale": 1.5
       },
       "timeline": {
         "isEditorActive": false,
@@ -1074,13 +1074,36 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {},
-          "1": {
-            "0": {
-              "$selected": true
-            }
+          "3": {},
+          "4": {},
+          "5": {},
+          "7": {
+            "$selected": true
           }
         }
+      }
+    },
+    "[smallGauge3.eez-project]:/userPages/1[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {
+            "$selected": true
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -180,
+          "y": -180
+        },
+        "scale": 1.5
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
       }
     }
   },
@@ -1099,11 +1122,13 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "TEXT"
+    "TEXT",
+    "BORDER",
+    "BACKGROUND"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1.1,
+  "flowZoom": 1.5,
   "implementationLanguage": "C",
   "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\smallGauge3\\gas-pump-solid.png"
 }

@@ -1,6 +1,7 @@
 {
   "navigation": {
     "selectedUserPageObject": "[smallGauge2.eez-project]:/userPages/0",
+    "selectedFontObject": "[smallGauge2.eez-project]:/fonts/2",
     "selectedBitmapObject": "[smallGauge2.eez-project]:/bitmaps/2",
     "subnavigationSelectedItems": {}
   },
@@ -22,7 +23,7 @@
           },
           {
             "type": "border",
-            "selected": 2,
+            "selected": 1,
             "size": 240,
             "location": "right",
             "children": [
@@ -164,7 +165,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -187,7 +189,7 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 54.41422594142259,
+              "weight": 51.857142857142854,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
@@ -202,13 +204,12 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
               "id": "#251c5e0d-600c-4022-9501-eef9f2f47e31",
-              "weight": 30.585774058577407,
+              "weight": 33.142857142857146,
               "children": [
                 {
                   "type": "tabset",
@@ -1074,14 +1075,32 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "1": {
-              "$selected": true
-            }
-          },
           "1": {},
-          "2": {}
+          "4": {},
+          "5": {},
+          "6": {},
+          "7": {},
+          "9": {
+            "$selected": true
+          }
         }
+      }
+    },
+    "[smallGauge2.eez-project]:/userPages/1[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -180,
+          "y": -180
+        },
+        "scale": 1.25
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
       }
     }
   },
@@ -1099,7 +1118,8 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "IMAGE"
+    "TEXT",
+    "BACKGROUND"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,

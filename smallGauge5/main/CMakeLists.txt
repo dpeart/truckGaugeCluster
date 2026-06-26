@@ -1,12 +1,39 @@
-# Automatically include your application code
-file(GLOB_RECURSE MAIN_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-)
-
 idf_component_register(
     SRCS
-        ${MAIN_SOURCES}
+        "main.c"
+        "ota_handler.c"
+
+        # Application logic
+        "src/updateUI.c"
+        "src/GaugePacket.c"
+        "src/espnow_receiver.c"
+        "src/lvgl_lock.c"
+        "src/ui_actions.c"
+        "src/wifi_ota.c"
+
+        # UI sources
+        "src/ui/ui.c"
+        "src/ui/screens.c"
+        "src/ui/images.c"
+        "src/ui/styles.c"
+
+        # UI Images
+        "src/ui/ui_image_battery_warning_light.c"
+        "src/ui/ui_image_engine_temp_icon.c"
+        "src/ui/ui_image_fuel_location_right.c"
+        "src/ui/ui_image_low_washer_fluid.c"
+        "src/ui/ui_image_od_off_indicator.c"
+        "src/ui/ui_image_oil_pressure_indicator.c"
+        "src/ui/ui_image_water_in_fuel.c"
+
+        # Fonts
+        "src/ui/ui_font_roboto_condensed_50.c"
+        "src/ui/ui_font_roboto_condensed_25.c"
+        "src/ui/ui_font_robot_mono_20.c"
+        "src/ui/ui_font_roboto_mono_24.c"
+        "src/ui/ui_font_roboto_mono_30.c"
+        "src/ui/ui_font_roboto_mono_35.c"
+        "src/ui/ui_font_roboto_mono_40.c"
 
         # Explicit driver sources (these MUST be listed)
         "./EXIO/TCA9554PWR.c"
@@ -52,5 +79,9 @@ idf_component_register(
         "./BAT_Driver"
         "./PWR_Key"
         "./Wireless"
+        "src"
+        "src/ui"
         "."
+    REQUIRES
+        mdns esp_http_server wifi_provisioning app_update nvs_flash esp_wifi esp_event esp_netif driver esp_adc fatfs spi_flash
 )

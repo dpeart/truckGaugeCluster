@@ -12,11 +12,13 @@ extern "C" {
 enum ScreensEnum {
     _SCREEN_ID_FIRST = 1,
     SCREEN_ID_MAIN = 1,
-    _SCREEN_ID_LAST = 1
+    SCREEN_ID_SETTINGS = 2,
+    _SCREEN_ID_LAST = 2
 };
 
 typedef struct _objects_t {
     lv_obj_t *main;
+    lv_obj_t *settings;
     lv_obj_t *info;
     lv_obj_t *heading;
     lv_obj_t *time;
@@ -37,12 +39,24 @@ typedef struct _objects_t {
     lv_obj_t *low_battery;
     lv_obj_t *obj8;
     lv_obj_t *obj9;
+    lv_obj_t *config;
+    lv_obj_t *config_button;
+    lv_obj_t *main_button;
+    lv_obj_t *obj10;
+    lv_obj_t *ota;
+    lv_obj_t *obj11;
+    lv_obj_t *reboot;
+    lv_obj_t *obj12;
+    lv_obj_t *reset;
 } objects_t;
 
 extern objects_t objects;
 
 void create_screen_main();
 void tick_screen_main();
+
+void create_screen_settings();
+void tick_screen_settings();
 
 void tick_screen_by_id(enum ScreensEnum screenId);
 void tick_screen(int screen_index);

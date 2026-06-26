@@ -7,13 +7,11 @@
 extern "C" {
 #endif
 
-extern const lv_font_t ui_font_ibm_plex_mono_medium_24;
-extern const lv_font_t ui_font_ibm_plex_mono_medium_30;
-extern const lv_font_t ui_font_ibm_plex_mono_medium_35;
 extern const lv_font_t ui_font_roboto_mono_24;
 extern const lv_font_t ui_font_roboto_mono_30;
 extern const lv_font_t ui_font_roboto_mono_35;
 extern const lv_font_t ui_font_roboto_mono_40;
+extern const lv_font_t ui_font_roboto_condensed_50;
 
 #ifndef EXT_FONT_DESC_T
 #define EXT_FONT_DESC_T

@@ -4,6 +4,8 @@
 #include "digitalPins.h"
 #include "GaugePacket.h"
 
+static const char *TAG = "updateSpeed";
+
 void update_left_turn(bool state)
 {
     lv_obj_set_style_img_opa(
@@ -80,8 +82,8 @@ void tach_anim_cb(void *var, int32_t val)
 
 void update_speed_ui(int32_t current_speed, int32_t target_speed)
 {
-    int32_t current_scaled = current_speed * 5;
-    int32_t target_scaled = target_speed * 5;
+    int32_t current_scaled = current_speed / 2;
+    int32_t target_scaled = target_speed / 2;
     // Static pointer ensures we only find the needle once
     // lv_meter_indicator_t* speed_needle;
 
@@ -118,8 +120,8 @@ void update_tach_ui(int32_t current_rpm, int32_t target_rpm)
     // Scale for gauge RMP/10
     int32_t current_scaled = current_rpm / 20;
     int32_t target_scaled = target_rpm / 20;
-    ESP_LOGI("TAG", "CurrentRPM %d", current_scaled);
-    ESP_LOGI("TAG", "TargetRPM %d", target_scaled);
+    ESP_LOGI(TAG, "CurrentRPM %d", current_scaled);
+    ESP_LOGI(TAG, "TargetRPM %d", target_scaled);
     // Static pointer ensures we only find the needle once
     // lv_meter_indicator_t* speed_needle;
 

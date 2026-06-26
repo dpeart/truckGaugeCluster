@@ -1,6 +1,7 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[smallGauge4.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[smallGauge4.eez-project]:/userPages/1",
+    "selectedBitmapObject": "[smallGauge4.eez-project]:/bitmaps/3",
     "subnavigationSelectedItems": {}
   },
   "layoutModel": {
@@ -21,6 +22,7 @@
           },
           {
             "type": "border",
+            "selected": 2,
             "size": 240,
             "location": "right",
             "children": [
@@ -192,10 +194,10 @@
                 {
                   "type": "tab",
                   "id": "#2df9b9ab-4966-4b2c-9b68-6230b97b6caf",
-                  "name": "Main",
+                  "name": "Settings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[smallGauge4.eez-project]:/userPages/0",
+                    "objectPath": "[smallGauge4.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -612,7 +614,8 @@
                       "component": "bitmaps",
                       "enableClose": false
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1064,7 +1067,38 @@
         "scrollLeft": 0
       },
       "selectionFront": {},
-      "selectionBack": {}
+      "selectionBack": {
+        "0": {
+          "1": {},
+          "6": {
+            "$selected": true
+          }
+        }
+      }
+    },
+    "[smallGauge4.eez-project]:/userPages/1[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {},
+          "1": {
+            "$selected": true
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -180,
+          "y": -180
+        },
+        "scale": 1
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
     }
   },
   "activeOutputSection": 0,
@@ -1080,9 +1114,12 @@
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [],
+  "lvglExpandedPropertiesGroup": [
+    "BACKGROUND"
+  ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
   "flowZoom": 1,
-  "implementationLanguage": "C"
+  "implementationLanguage": "C",
+  "openDialogDefaultPath": "C:\\Users\\davep\\OneDrive\\Documents\\Truck\\RealDash\\Images\\turbo.png"
 }

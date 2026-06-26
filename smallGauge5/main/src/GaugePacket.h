@@ -7,10 +7,6 @@ extern "C"
 {
 #endif
 
-#pragma once
-#include <stdint.h>
-#include <string.h>
-
 typedef struct __attribute__((packed)) {
 
   // -------------------------
@@ -68,6 +64,7 @@ typedef struct __attribute__((packed)) {
     void gauge_state_init(void);
     void gauge_state_set(const GaugePacket *in);
     void gauge_state_get(GaugePacket *out);
+    bool gauge_state_is_stale(uint32_t timeout_ms);
     void printGaugePacket(const GaugePacket *pkt);
 
 #ifdef __cplusplus

@@ -5,8 +5,10 @@
 #include "nvs.h"
 #include "esp_log.h"
 #include "esp_err.h"
-#include "esp_now.h"
+#include "esp_ota_ops.h"
+#include "driver/gpio.h"
 
+#include "ota_handler.h"
 #include "ST77916.h"  // LCD driver
 #include "PCF85063.h" // RTC
 #include "QMI8658.h"  // IMU
@@ -16,13 +18,10 @@
 #include "BAT_Driver.h"
 #include "PWR_Key.h"
 
-// nvs_flash.h was already included above; no need to pull it twice
-
 #define LV_CONF_INCLUDE_SIMPLE
 #include "lv_conf.h"
 #include "lvgl.h"
-// #include "esp_lvgl_port.h"
-#include "LVGL_Driver.h" // <-- THIS IS THE FIX YOU NEEDED
+#include "LVGL_Driver.h"
 
 // UI + app headers
 #include "src/ui/ui.h"
@@ -30,11 +29,13 @@
 #include "src/GaugePacket.h"
 #include "src/espnow_receiver.h"
 #include "src/lvgl_lock.h"
+#include "src/wifi_ota.h"
 
-// Allocate full double buffer size in PSRAM
+#define CONFIG_ESPNOW_CHANNEL 1
 #define LVGL_BUF_LEN (EXAMPLE_LCD_WIDTH * EXAMPLE_LCD_HEIGHT)
 
 static const char *TAG = "MAIN";
+#define ONBOARD_LED_GPIO  2
 
 static void lvgl_task(void *arg)
 {
@@ -43,23 +44,23 @@ static void lvgl_task(void *arg)
     while (1)
     {
         lvgl_lock();
-        lv_timer_handler();
 
         if (first)
         {
-            ESP_LOGI("LVGL", "creating UI");
+            ESP_LOGI("LVGL", "Starting UI initialization...");
             ui_init();
-            ui_tick();
-            ui_ready = true;     // now the UI really exists
-            lvgl_started = true; // LVGL + UI are both ready
+            ui_ready = true;
+            lvgl_started = true;
+
+            // *** Long-press OTA toggle removed ***
+
             first = false;
-            ESP_LOGI("LVGL", "set flags: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
-                     ui_ready, lvgl_started, &ui_ready, &lvgl_started);
+            ESP_LOGI("LVGL", "UI ready");
         }
 
+        lv_timer_handler();
         lvgl_unlock();
-
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -70,6 +71,7 @@ void gauge_task(void *arg)
 {
     GaugePacket pkt;
     memset(&pkt, 0, sizeof(pkt));
+    bool was_stale = true;
 
     int32_t last_trans = -1;
     int32_t last_fuel_pressure = -1;
@@ -81,6 +83,8 @@ void gauge_task(void *arg)
 
     // Because guage_task starts before the UI is fully initialized, we wait here until the UI signals it's ready for updates.
     // This prevents us from trying to update LVGL objects that haven't been created yet.
+    ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
+             ui_ready, lvgl_started, &ui_ready, &lvgl_started);
     while (!ui_ready || !lvgl_started)
     {
         ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
@@ -90,6 +94,12 @@ void gauge_task(void *arg)
 
     while (1)
     {
+        bool is_stale = gauge_state_is_stale(2000);
+        if (is_stale != was_stale) {
+            if (is_stale) ESP_LOGW(TAG, "ESP-NOW Link LOST");
+            else ESP_LOGI(TAG, "ESP-NOW Link RESTORED");
+            was_stale = is_stale;
+        }
 
         gauge_state_get(&pkt);
 
@@ -137,13 +147,23 @@ void gauge_task(void *arg)
     }
 }
 
-// ------------------------------------------------------------
-// Driver Loop (unchanged)
-// ------------------------------------------------------------
+void monitor_task(void *arg)
+{
+    const esp_partition_t *running = esp_ota_get_running_partition();
+
+    while (1) {
+        char ip_addr_str[16] = "N/A";
+        get_wifi_ip_str(ip_addr_str, sizeof(ip_addr_str));
+
+        ESP_LOGI(TAG, "WiFi State: %s | IP: %s | Partition: %s",
+                 wifi_state_to_str(get_wifi_state()), ip_addr_str, running->label);
+
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+}
+
 void Driver_Loop(void *parameter)
 {
-    // Wireless_Init();
-
     while (1)
     {
         QMI8658_Loop();
@@ -160,7 +180,6 @@ void Driver_Init(void)
     BAT_Init();
     I2C_Init();
     EXIO_Init();
-    // Flash_Searching();  // SD card support is disabled for now; un-comment if you need filesystem access
     PCF85063_Init();
     QMI8658_Init();
 
@@ -174,55 +193,51 @@ void Driver_Init(void)
         0);
 }
 
-// ------------------------------------------------------------
-// app_main
-// ------------------------------------------------------------
 void app_main(void)
 {
-    esp_log_level_set("*", ESP_LOG_NONE);    // silence everything
-    esp_log_level_set("LVGL", ESP_LOG_INFO); // enable only LVGL logs
+    esp_log_level_set("*", ESP_LOG_INFO);
 
     ESP_LOGI(TAG, "Starting Truck Gauge Cluster");
 
-    // Initialize NVS as wifi needs it
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
     {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
-
-    // Give panel power rails, SPI, and touch time to stabilize
-    // vTaskDelay(pdMS_TO_TICKS(50));
-
     ESP_ERROR_CHECK(ret);
-    Driver_Init();
-    // SD card support is disabled for now; un-comment if you need filesystem access
-    // SD_Init();
-    LCD_Init();
 
-    // Backlight_Init();
+    const esp_partition_t *running = esp_ota_get_running_partition();
+    if (running->subtype >= ESP_PARTITION_SUBTYPE_APP_OTA_MIN &&
+        running->subtype <= ESP_PARTITION_SUBTYPE_APP_OTA_MAX)
+    {
+        ESP_LOGI(TAG, "Running from OTA slot, validating image...");
+        ESP_ERROR_CHECK(esp_ota_mark_app_valid_cancel_rollback());
+    }
+
+    network_setup();
+
+    init_wifi_state_machine();
+
+    Driver_Init();
+    LCD_Init();
     Set_Backlight(100);
 
     LVGL_Init();
-    lvgl_lock_init(); // <-- add this
+    lvgl_lock_init();
 
-    // Start LVGL task
     xTaskCreatePinnedToCore(
         lvgl_task,
         "lvgl_task",
-        4096,
+        8192,
         NULL,
         5,
         NULL,
-        1 // or 0, just be consistent with your other tasks
-    );
-
-    espnow_receiver_init(1);
+        1);
 
     gauge_state_init();
+    espnow_receiver_init(1);
 
-    // Gauge update task on Core 0
     xTaskCreatePinnedToCore(
         gauge_task,
         "gauge_task",
@@ -231,4 +246,6 @@ void app_main(void)
         5,
         NULL,
         0);
-}
+
+    xTaskCreate(monitor_task, "monitor_task", 4096, NULL, 1, NULL);
+    }

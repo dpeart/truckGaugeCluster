@@ -5,3 +5,4 @@ dependencies:
   chmorgan/esp-libhelix-mp3: ==1.0.3
   espressif/esp-sr: ~1.9.4
   espressif/esp_lvgl_port: ^2.7.1
+  espressif/mdns: '*'

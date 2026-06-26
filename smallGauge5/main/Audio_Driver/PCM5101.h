@@ -4,11 +4,8 @@
 extern "C" {
 #endif
 
-#pragma once
-
 #include "esp_log.h" 
 #include "esp_check.h" 
-#include "unity.h" 
 #include "audio_player.h" 
 #include "driver/gpio.h" 
 #include "freertos/semphr.h" 

@@ -1,7 +1,8 @@
 {
   "navigation": {
     "selectedUserPageObject": "[smallGauge1.eez-project]:/userPages/0",
-    "selectedBitmapObject": "[smallGauge1.eez-project]:/bitmaps/2",
+    "selectedFontObject": "[smallGauge1.eez-project]:/fonts/1",
+    "selectedBitmapObject": "[smallGauge1.eez-project]:/bitmaps/0",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Actions"
     }
@@ -166,7 +167,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -190,10 +192,24 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 48.04649265905383,
-              "selected": 1,
+              "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
+                {
+                  "type": "tab",
+                  "id": "#6c06bb05-4c21-42a6-b1ea-b9a9bf08cf9e",
+                  "name": "Robot-Mono-20",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[smallGauge1.eez-project]:/fonts/4",
+                    "params": {
+                      "forceOpenEditor": true
+                    },
+                    "permanent": false
+                  },
+                  "icon": "material:font_download"
+                },
                 {
                   "type": "tab",
                   "id": "#d815ef65-fa3b-4c63-846f-dd70192fc822",
@@ -217,8 +233,7 @@
                   },
                   "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
@@ -1070,17 +1085,17 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {},
-          "1": {},
-          "2": {}
+          "5": {},
+          "6": {},
+          "7": {}
         }
       },
       "transform": {
         "translate": {
-          "x": -157.37000000000003,
-          "y": -221.889998626709
+          "x": -185.54329273545687,
+          "y": -372.74215435733737
         },
-        "scale": 0.9
+        "scale": 1.25
       },
       "timeline": {
         "isEditorActive": false,
@@ -1101,12 +1116,17 @@
   "showComponentDescriptions": true,
   "logsPanelFilter": "all",
   "selectedStylePropertyName": "",
-  "lvglPart": "INDICATOR",
+  "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [],
+  "lvglExpandedPropertiesGroup": [
+    "BACKGROUND",
+    "SHADOW",
+    "ARC",
+    "TEXT"
+  ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 0.9,
+  "flowZoom": 1.25,
   "implementationLanguage": "C",
-  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\smallGauge1\\fuel-location-right.png"
+  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf"
 }

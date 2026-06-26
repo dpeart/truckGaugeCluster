@@ -4,17 +4,19 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-
 // ------------------------------------------------------------
 // GaugePacket (pure C++ struct)
 // ------------------------------------------------------------
-struct  __attribute__((packed)) GaugePacket {
+struct __attribute__((packed)) GaugePacket
+{
 
     // Core vehicle sensor data
     int16_t speed;
     int16_t rpm;
     int16_t gearPosition;
 
+    int16_t batteryLevel;
+    int16_t fuelLevel;
     int16_t iaTemp;
     int16_t oilTemp;
     int16_t coolantTemp;
@@ -37,16 +39,16 @@ struct  __attribute__((packed)) GaugePacket {
 
     // GNSS date/time
     uint16_t year;
-    uint8_t  month;
-    uint8_t  day;
+    uint8_t month;
+    uint8_t day;
 
-    uint8_t  hour;
-    uint8_t  minute;
-    uint8_t  second;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
 
     // GNSS heading + direction
-    int16_t headingDeg;     // scaled degrees (0–35999 = 0–359.99)
-    char    compass8[4];    // "N", "NE", "SW", etc.
+    int16_t headingDeg; // scaled degrees (0–35999 = 0–359.99)
+    char compass8[4];   // "N", "NE", "SW", etc.
 };
 
 // ------------------------------------------------------------
@@ -61,10 +63,10 @@ extern SemaphoreHandle_t g_gauge_mutex;
 void gauge_state_init();
 
 // Thread-safe write
-void gauge_state_set(const GaugePacket& in);
+void gauge_state_set(const GaugePacket &in);
 
 // Thread-safe read
-void gauge_state_get(GaugePacket& out);
+void gauge_state_get(GaugePacket &out);
 
 // Debug helper (implemented in .cpp)
-void printGaugePacket(const GaugePacket& pkt);
+void printGaugePacket(const GaugePacket &pkt);

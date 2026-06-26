@@ -95,15 +95,10 @@ static void onReceive(const esp_now_recv_info_t *info,
 // -----------------------------------------------------------------------------
 esp_err_t espnow_receiver_init(uint8_t channel)
 {
-    // Initialize Wi-Fi radio only
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    // Initialize UART for forwarding to P4
+    uart_forward_init();
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
-    ESP_ERROR_CHECK(esp_wifi_set_channel(channel, WIFI_SECOND_CHAN_NONE));
+    // WiFi channel setting is now handled by the main WiFi state machine
 
     // Initialize ESP-NOW
     ESP_ERROR_CHECK(esp_now_init());

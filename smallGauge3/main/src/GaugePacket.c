@@ -3,6 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include <string.h>
 
 static const char *TAG = "GaugePacket";
@@ -11,6 +12,7 @@ static const char *TAG = "GaugePacket";
 // Global gauge state + mutex
 // ------------------------------------------------------------
 GaugePacket g_gauge_state;          // no C++ initializer
+static int64_t s_last_update_us = 0;
 SemaphoreHandle_t g_gauge_mutex = NULL;
 
 // ------------------------------------------------------------
@@ -23,6 +25,7 @@ void gauge_state_init(void)
     }
 
     memset(&g_gauge_state, 0, sizeof(GaugePacket));
+    s_last_update_us = 0; // 0 indicates we have never received a packet
 }
 
 // ------------------------------------------------------------
@@ -35,6 +38,7 @@ void gauge_state_set(const GaugePacket *in)
         // ESP_LOGI("STATE", "SET speed=%d rpm=%d", in->speed, in->rpm);
 
         memcpy(&g_gauge_state, in, sizeof(GaugePacket));
+        s_last_update_us = esp_timer_get_time();
 
         xSemaphoreGive(g_gauge_mutex);
     }
@@ -51,6 +55,16 @@ void gauge_state_get(GaugePacket *out)
 
         xSemaphoreGive(g_gauge_mutex);
     }
+}
+
+bool gauge_state_is_stale(uint32_t timeout_ms)
+{
+    if (s_last_update_us == 0) return true; // Never received data
+
+    // esp_timer_get_time returns microseconds
+    int64_t now = esp_timer_get_time();
+    int64_t diff = (now - s_last_update_us) / 1000; // convert to ms
+    return (diff > timeout_ms);
 }
 
 // ------------------------------------------------------------

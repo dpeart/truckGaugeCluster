@@ -7,6 +7,10 @@
 extern "C" {
 #endif
 
+extern void action_switch_screen(lv_event_t * e);
+extern void action_set_page(lv_event_t * e);
+extern void action_button_pressed(lv_event_t * e);
+
 #ifdef __cplusplus
 }
 #endif

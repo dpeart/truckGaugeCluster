@@ -1,7 +1,7 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/0",
-    "selectedFontObject": "[mainGaugeBGImages.eez-project]:/fonts/2",
+    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/1",
+    "selectedFontObject": "[mainGaugeBGImages.eez-project]:/fonts/3",
     "selectedBitmapObject": "[mainGaugeBGImages.eez-project]:/bitmaps/4",
     "subnavigationSelectedItems": {}
   },
@@ -23,6 +23,7 @@
           },
           {
             "type": "border",
+            "selected": 1,
             "size": 240,
             "location": "right",
             "children": [
@@ -195,10 +196,10 @@
                 {
                   "type": "tab",
                   "id": "#77689d03-c09c-49b2-aa13-14102dbc6be4",
-                  "name": "Main",
+                  "name": "Settings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/0",
+                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -1063,10 +1064,10 @@
       },
       "transform": {
         "translate": {
-          "x": -360,
-          "y": -360
+          "x": -261.235,
+          "y": -299.375
         },
-        "scale": 1
+        "scale": 0.75
       },
       "timeline": {
         "isEditorActive": false,
@@ -1077,14 +1078,37 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "0": {
-            "0": {}
-          },
-          "1": {
+          "0": {},
+          "1": {},
+          "4": {},
+          "6": {},
+          "7": {
             "$selected": true
-          },
-          "4": {}
+          }
         }
+      }
+    },
+    "[mainGaugeBGImages.eez-project]:/userPages/1[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {
+            "$selected": true
+          }
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -346.6900000000002,
+          "y": -180
+        },
+        "scale": 0.75
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
       }
     }
   },
@@ -1103,12 +1127,11 @@
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
   "lvglExpandedPropertiesGroup": [
-    "BACKGROUND",
     "TEXT"
   ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 1,
+  "flowZoom": 0.75,
   "implementationLanguage": "C",
   "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckDisplay\\eez-projects\\IBM_Plex_Mono\\IBMPlexMono-Medium.ttf"
 }
