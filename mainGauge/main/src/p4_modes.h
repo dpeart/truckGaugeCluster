@@ -2,12 +2,6 @@
 #include <cstdint>
 
 // ---------------------------------------------------------
-// Frame start byte (shared protocol constant)
-// ---------------------------------------------------------
-constexpr uint8_t FRAME_START = 0xAA;
-constexpr uint8_t ESCAPE = 0x7D;
-
-// ---------------------------------------------------------
 // P4-side mode enum
 // ---------------------------------------------------------
 enum class p4_mode_t : uint8_t {
@@ -36,6 +30,7 @@ constexpr uint8_t CMD_PONG        = 0x02;
 constexpr uint8_t CMD_DUMMY_DATA  = 0x05;
 constexpr uint8_t CMD_BOOTED      = 0x06;
 constexpr uint8_t CMD_ACK         = 0x07;
+constexpr uint8_t CMD_NACK        = 0x08;
 
 // Mode control commands (P4 → C6)
 constexpr uint8_t CMD_MODE_C6_OTA        = 0x10;
@@ -51,6 +46,7 @@ constexpr uint8_t CMD_PROV_SUCCESS = 0x30;
 constexpr uint8_t CMD_PROV_FAIL    = 0x31;
 constexpr uint8_t CMD_C6_UPLOAD_BEGIN = 0x32;
 constexpr uint8_t CMD_C6_UPLOAD_END   = 0x33;
+
 // ---------------------------------------------------------
 // DATA STREAM COMMANDS (C6 → P4)
 // ---------------------------------------------------------

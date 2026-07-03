@@ -544,7 +544,7 @@ void generateDebugData() {
   // Speed 0–140 mph
   static float speed_theta = 0.0f;
   speed_theta += 0.006702f;  // one update every 16ms
-  speed = (int)(705.0f + 705.0f * sinf(speed_theta));
+  speed = (int)(70.0f + 70.0f * sinf(speed_theta));
 
   // RPM 0–5000
   static float tach_theta = 0.0f;

@@ -23,6 +23,7 @@ extern volatile c6_mode_t current_mode;
 #define CMD_DUMMY_DATA 0x05
 #define CMD_BOOTED 0x06
 #define CMD_ACK 0x07
+#define CMD_NACK 0x08
 
 // Mode control commands (P4 → C6)
 #define CMD_MODE_C6_OTA 0x10
@@ -37,6 +38,7 @@ extern volatile c6_mode_t current_mode;
 #define CMD_PROV_FAIL 0x31
 #define CMD_C6_UPLOAD_BEGIN 0x32
 #define CMD_C6_UPLOAD_END 0x33
+
 // ---------------------------------------------------------
 // DATA STREAM COMMANDS (C6 → P4)
 // ---------------------------------------------------------

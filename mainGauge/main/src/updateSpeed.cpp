@@ -6,149 +6,140 @@
 
 static const char *TAG = "updateSpeed";
 
+// Static variables preserve the actual smooth floating-point positions across frames
+static float current_smooth_speed = 0.0f;
+static float current_smooth_rpm = 0.0f;
+
+// Tweaking this factor changes needle responsiveness:
+// Higher value (e.g., 0.25) = snappier, less smooth
+// Lower value (e.g., 0.08)  = heavier weight, silky smooth sweep
+#define LERP_FACTOR 0.15f 
+
 void update_left_turn(bool state)
 {
-    lv_obj_set_style_img_opa(
-        objects.left,
-        state ? LV_OPA_COVER : 50,
-        LV_PART_MAIN);
+    lv_obj_set_style_img_opa(objects.left, state ? LV_OPA_COVER : 50, LV_PART_MAIN);
 }
 
 void update_right_turn(bool state)
 {
-    lv_obj_set_style_img_opa(
-        objects.right,
-        state ? LV_OPA_COVER : 50,
-        LV_PART_MAIN);
+    lv_obj_set_style_img_opa(objects.right, state ? LV_OPA_COVER : 50, LV_PART_MAIN);
 }
 
 void update_high_beam(bool state)
 {
-    lv_obj_set_style_img_opa(
-        objects.high_beam,
-        state ? LV_OPA_COVER : 50,
-        LV_PART_MAIN);
+    lv_obj_set_style_img_opa(objects.high_beam, state ? LV_OPA_COVER : 50, LV_PART_MAIN);
 }
 
 // Global mileage counter in 1/10 mile units
 static int mileage_tenths = 0;
 static int odo_divider = 0;
+static int last_printed_mileage = -1; 
 
 void incrementOdometer(void)
 {
-    // Timer is firing 10× too fast, so divide by 10
     odo_divider++;
     if (odo_divider < 100)
     {
-        return; // skip this tick
+        return; 
     }
-    odo_divider = 0; // reset every 10 ticks
+    odo_divider = 0; 
 
-    // Now increment exactly 1/10 mile per second
     mileage_tenths++;
 
-    int miles = mileage_tenths / 10;
-    int tenth = mileage_tenths % 10;
+    if (mileage_tenths != last_printed_mileage)
+    {
+        last_printed_mileage = mileage_tenths;
+        
+        int miles = mileage_tenths / 10;
+        int tenth = mileage_tenths % 10;
 
-    static char odoStr[16];
-    snprintf(odoStr, sizeof(odoStr), "%06d.%d", miles, tenth);
+        static char odoStr[16];
+        snprintf(odoStr, sizeof(odoStr), "%06d.%d", miles, tenth);
 
-    lv_label_set_text(objects.odometer, odoStr);
+        lv_label_set_text(objects.odometer, odoStr);
+    }
 }
+
+static uint16_t last_digital_pins = 0xFFFF; 
 
 void updateIndicators(const GaugePacket &pkt)
 {
-    uint16_t pins = pkt.digitalPins;
+    uint16_t current_pins = pkt.digitalPins;
 
-    update_left_turn(pins & IND_LEFT);
-    update_right_turn(pins & IND_RIGHT);
-    update_high_beam(pins & IND_HIGHBEAM);
+    if (current_pins == last_digital_pins)
+    {
+        return;
+    }
+
+    if ((current_pins & IND_LEFT) != (last_digital_pins & IND_LEFT))
+    {
+        update_left_turn(current_pins & IND_LEFT);
+    }
+
+    if ((current_pins & IND_RIGHT) != (last_digital_pins & IND_RIGHT))
+    {
+        update_right_turn(current_pins & IND_RIGHT);
+    }
+
+    if ((current_pins & IND_HIGHBEAM) != (last_digital_pins & IND_HIGHBEAM))
+    {
+        update_high_beam(current_pins & IND_HIGHBEAM);
+    }
+
+    last_digital_pins = current_pins;
 }
 
-// Callback for the LVGL animation engine
-void speed_anim_cb(void *var, int32_t val)
+void update_speed_ui(int32_t target_speed)
 {
-    // Uses the 'speed' object from screens.h
-    lv_meter_set_indicator_value(objects.speed, (lv_meter_indicator_t *)var, val);
-    // ESP_LOGI("tag", "%d", val);
+    // PIXEL TRICK: Scale up by 10. If data is 45 MPH, target becomes 450.
+    // This unlocks 10 micro-steps between every single MPH digit!
+    int32_t target_scaled = target_speed * 10; 
+    float previous_smooth = current_smooth_speed;
+
+    // The filter now glides seamlessly through individual pixel steps (e.g., 441, 442, 443...)
+    current_smooth_speed += (target_scaled - current_smooth_speed) * LERP_FACTOR;
+
+    // Round to the nearest integer for exact sub-pixel layout alignment
+    int32_t display_val = (int32_t)(current_smooth_speed + 0.5f);
+
+    // LOGGING: Triggers on actual micro-pixel adjustments
+    if ((int32_t)(previous_smooth + 0.5f) != display_val)
+    {
+        // To read the log as normal MPH, just look at the float divided by 10
+        ESP_LOGI(TAG, "[SPEED] Target: %.1f MPH | Smooth Sweep: %.2f MPH -> Dispatched to LVGL: %ld", 
+                 (float)target_scaled / 10.0f, current_smooth_speed / 10.0f, display_val);
+    }
+
+    if (screen_main_state.speed_indicator != NULL)
+    {
+        // Sends the high-precision value (0-1400) to match your scale perfectly
+        lv_meter_set_indicator_value(objects.speed, 
+                                     (lv_meter_indicator_t *)screen_main_state.speed_indicator, 
+                                     display_val);
+    }
 }
 
-void tach_anim_cb(void *var, int32_t val)
+void update_tach_ui(int32_t target_rpm)
 {
-
-    // Update the indicator
-    lv_meter_set_indicator_value(objects.tach, (lv_meter_indicator_t *)var, val);
-}
-
-void update_speed_ui(int32_t current_speed, int32_t target_speed)
-{
-    int32_t current_scaled = current_speed / 2;
-    int32_t target_scaled = target_speed / 2;
-    // Static pointer ensures we only find the needle once
-    // lv_meter_indicator_t* speed_needle;
-
-    // Fetch the first indicator in the list (the needle)
-    // speed_needle = (lv_meter_indicator_t *)_lv_ll_get_head(objects.speed->indicator_ll);
-
-    // 2. Safety check: ensure screen is loaded and needle exists
-    // if (!speed_needle) return;
-
-    // 3. Setup and start the animation
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_exec_cb(&a, speed_anim_cb);
-    lv_anim_set_var(&a, screen_main_state.speed_indicator);
-    // lv_anim_set_path_cb(&a, lv_anim_path_ease_out); // Non-linear movement
-    // lv_anim_set_path_cb(&a, lv_anim_path_overshoot);  // bounces needle at end
-
-    // Animate from current needle position to target
-    lv_anim_set_values(&a, current_scaled, target_scaled);
-
-    lv_anim_set_time(&a, 250); // 300ms for a responsive feel
-
-    // lv_anim_set_time(&a, 500);
-    // lv_anim_set_repeat_delay(&a, 250);
-    // lv_anim_set_playback_time(&a, 500);
-    // lv_anim_set_playback_delay(&a, 50);
-    // lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
-
-    lv_anim_start(&a);
-}
-
-void update_tach_ui(int32_t current_rpm, int32_t target_rpm)
-{
-    // Scale for gauge RMP/10
-    int32_t current_scaled = current_rpm / 20;
     int32_t target_scaled = target_rpm / 20;
-    ESP_LOGI(TAG, "CurrentRPM %d", current_scaled);
-    ESP_LOGI(TAG, "TargetRPM %d", target_scaled);
-    // Static pointer ensures we only find the needle once
-    // lv_meter_indicator_t* speed_needle;
+    float previous_smooth = current_smooth_rpm;
 
-    // Fetch the first indicator in the list (the needle)
-    // speed_needle = (lv_meter_indicator_t *)_lv_ll_get_head(objects.speed->indicator_ll);
+    // Glides the tach position closer to the target
+    current_smooth_rpm += (target_scaled - current_smooth_rpm) * LERP_FACTOR;
 
-    // 2. Safety check: ensure screen is loaded and needle exists
-    // if (!speed_needle) return;
+    int32_t display_val = (int32_t)(current_smooth_rpm + 0.5f);
 
-    // 3. Setup and start the animation
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_exec_cb(&a, tach_anim_cb);
-    lv_anim_set_var(&a, screen_main_state.tach_indicator);
-    // lv_anim_set_path_cb(&a, lv_anim_path_ease_out); // Non-linear movement
-    // lv_anim_set_path_cb(&a, lv_anim_path_overshoot);  // bounces needle at end
+    // LOGGING: Only prints when the RPM needle is actively moving
+    if ((int32_t)(previous_smooth + 0.5f) != display_val)
+    {
+        ESP_LOGI(TAG, "[TACH] Target: %ld | Smooth Calculated: %.2f -> Dispatched Int: %ld", 
+                 target_scaled, current_smooth_rpm, display_val);
+    }
 
-    // Animate from current needle position to target
-    lv_anim_set_values(&a, current_scaled, target_scaled);
-
-    lv_anim_set_time(&a, 250); // 300ms for a responsive feel
-
-    // lv_anim_set_time(&a, 500);
-    // lv_anim_set_repeat_delay(&a, 250);
-    // lv_anim_set_playback_time(&a, 500);
-    // lv_anim_set_playback_delay(&a, 50);
-    // lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
-
-    lv_anim_start(&a);
+    if (screen_main_state.tach_indicator != NULL)
+    {
+        lv_meter_set_indicator_value(objects.tach, 
+                                     (lv_meter_indicator_t *)screen_main_state.tach_indicator, 
+                                     display_val);
+    }
 }

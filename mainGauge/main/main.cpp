@@ -38,78 +38,35 @@ void lvgl_tick_task(void *arg)
         vTaskDelay(1);  // sleep 1 ms
     }
 }
+
 void runLVGLTask(void *arg)
 {
     GaugePacket pkt{};
-    int32_t last_speed = -1;
-    int32_t last_rpm = -1;
-    // static float speed_display = 0.0f;
-    // static float tach_display = 0.0f;
+    
+    const TickType_t xPeriod = pdMS_TO_TICKS(20); // 50 FPS smooth clock
+    TickType_t xLastWakeTime = xTaskGetTickCount();
 
     for (;;)
     {
-        // 1. Non-LVGL work first
-        gauge_state_get(pkt); // mutex-protected – OK
+        // 1. Snag the latest target values from the C6 streaming cache
+        gauge_state_get(pkt); 
 
-        // 2. Lock the port to interact with LVGL safely
         lvgl_port_lock(-1);
 
-        // --- START PERFORMANCE BENCHMARK ---
-        TickType_t start_tick = xTaskGetTickCount();
-
-        // 3. UI updates (Setting values only flags them as dirty)
-        if (pkt.speed != last_speed)
-        {
-            update_speed_ui(last_speed, pkt.speed);
-            last_speed = pkt.speed;
-        }
-
-        if (pkt.rpm != last_rpm)
-        {
-            update_tach_ui(last_rpm, pkt.rpm);
-            last_rpm = pkt.rpm;
-        }
+        // 2. Pass target values to the UI on EVERY tick (20ms) 
+        // The UI functions will handle the internal smooth calculations.
+        update_speed_ui(pkt.speed);
+        update_tach_ui(pkt.rpm);
 
         updateIndicators(pkt);
         incrementOdometer();
 
-        // 4. Run housekeeping and get the recommended sleep time
-        uint32_t time_till_next = lv_timer_handler();
+        // 3. Render the frame pass
+        lv_timer_handler();
 
-        // --- END PERFORMANCE BENCHMARK ---
-        TickType_t end_tick = xTaskGetTickCount();
-
-        // 5. Release the graphics lock
         lvgl_port_unlock();
 
-        // Calculate how long the CPU spent changing data and rendering pixels
-        uint32_t execution_time = (end_tick - start_tick) * portTICK_PERIOD_MS;
-
-        // LOGGING: Warn if our combined data change + render blew past the 16ms budget
-        if (execution_time > 20)
-        {
-            ESP_LOGW(TAG, "Frame dropped! Processing took %lu ms (Target: <20ms)", execution_time);
-        }
-        // 6. DYNAMIC THROTTLE:
-        // Cap the maximum frame rate so it doesn't try to loop infinitely.
-        if (time_till_next < 20)
-        {
-            time_till_next = 20;
-        }
-
-        // Smart Sleep Adjustment:
-        // Account for the time we *already spent* processing this frame.
-        if (time_till_next > execution_time)
-        {
-            time_till_next -= execution_time;
-        }
-        else
-        {
-            time_till_next = 1; // We are behind schedule! Yield briefly, then loop immediately.
-        }
-
-        // Delay based on what LVGL actually needs, keeping the CPU completely asleep
-        vTaskDelay(pdMS_TO_TICKS(time_till_next));
+        vTaskDelayUntil(&xLastWakeTime, xPeriod);
     }
 }
 
@@ -119,14 +76,15 @@ void runLVGLTask(void *arg)
 extern "C" void app_main(void)
 {
     // Disable messaging
-    esp_log_level_set("*", ESP_LOG_WARN);
-    esp_log_level_set("P4_UART", ESP_LOG_INFO);
-    esp_log_level_set("UI", ESP_LOG_INFO);
-    esp_log_level_set("P4_TELEM", ESP_LOG_NONE);
-    esp_log_level_set("STATE", ESP_LOG_INFO);
-    esp_log_level_set("P4_MAIN", ESP_LOG_INFO);
-
     esp_log_level_set("*", ESP_LOG_NONE);
+    esp_log_level_set("*", ESP_LOG_WARN);
+    // esp_log_level_set("updateSpeed", ESP_LOG_INFO);
+    // esp_log_level_set("P4_UART", ESP_LOG_INFO);
+    // esp_log_level_set("P4_OTA", ESP_LOG_INFO);
+    // esp_log_level_set("UI", ESP_LOG_INFO);
+    // esp_log_level_set("P4_TELEM", ESP_LOG_NONE);
+    // esp_log_level_set("STATE", ESP_LOG_NONE);
+    // esp_log_level_set("P4_MAIN", ESP_LOG_NONE);
 
     ESP_LOGI(TAG, "Starting Truck Gauge Cluster");
 

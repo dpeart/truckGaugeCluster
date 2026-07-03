@@ -11,20 +11,19 @@
 #include "c6_uart.h"
 #include "c6_modes.h"
 
-#define UART_MAX_PAYLOAD 256
-
 static const char *TAG = "OTA";
-bool upload_started = false;
+extern volatile uint8_t last_received_cmd;
+
+// Prototype for the cross-module ACK polling handler
+bool wait_for_ack(uint32_t timeout_ms);
 
 /* Simple HTML upload form */
 static const char *upload_html =
     "<html><body>"
     "<h1>Truck Gauge Update</h1>"
-
     "<div style='padding:10px; border:2px solid #444; display:inline-block; margin-bottom:20px;'>"
     "<b>OTA Mode:</b> %s"
     "</div><br><br>"
-
     "<input type=\"file\" id=\"file_input\" accept=\".bin\">"
     "<button onclick=\"upload()\">Upload Firmware</button><br><br>"
     "<hr>"
@@ -70,7 +69,7 @@ static esp_err_t ota_get_handler(httpd_req_t *req)
                                ? "C6 Firmware Update"
                                : "P4 Firmware Update";
 
-    char page_buf[4096];
+    char page_buf[MAX_PAYLOAD];
     snprintf(page_buf, sizeof(page_buf), upload_html, mode_str);
 
     httpd_resp_set_type(req, "text/html");
@@ -107,22 +106,41 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
         if (err != ESP_OK)
         {
             ESP_LOGE(TAG, "esp_ota_begin failed (%s)", esp_err_to_name(err));
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA Begin failed");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Target Begin failed");
             return ESP_FAIL;
         }
     }
     else
     {
         ESP_LOGI(TAG, "P4 OTA: streaming firmware to P4");
+
+        // 1. Clear stale state cache before initiating handshake
+        last_received_cmd = 0; 
+
+        // 2. Notify P4 of the absolute total size to allow optimal dynamic storage prep
+        uint32_t total_len = req->content_len;
+        uart_send_frame(CMD_C6_UPLOAD_BEGIN, (uint8_t *)&total_len, sizeof(total_len));
+        
+        // 3. Wait for P4 to complete initialization and partition tracking tasks
+        ESP_LOGI(TAG, "Waiting for P4 initializing OTA session...");
+        if (!wait_for_ack(5000)) // 3 seconds is generous for initialization
+        {
+            ESP_LOGE(TAG, "P4 failed to initialize session");
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "P4 Initialization Timeout");
+            return ESP_FAIL;
+        }
+
+        ESP_LOGI(TAG, "P4 initialized. Starting data stream.");
     }
 
-    char buf[UART_MAX_PAYLOAD];
+    // Allocate buffer on the heap or rely on standard allocation bounds
+    static char buf[MAX_PAYLOAD];
     int remaining = req->content_len;
     int total_streamed = 0;
 
     while (remaining > 0)
     {
-        int to_read = MIN(remaining, UART_MAX_PAYLOAD);
+        int to_read = MIN(remaining, MAX_PAYLOAD);
         int recv_len = httpd_req_recv(req, buf, to_read);
 
         if (recv_len <= 0)
@@ -136,13 +154,6 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
             return ESP_FAIL;
         }
 
-        if (target == OTA_TARGET_C6 && !upload_started)
-        {
-            uart_send_frame(CMD_C6_UPLOAD_BEGIN, NULL, 0);
-            upload_started = true;
-            ESP_LOGW(TAG, "Sent CMD_C6_UPLOAD_BEGIN to P4");
-        }
-
         if (target == OTA_TARGET_C6)
         {
             esp_err_t err = esp_ota_write(ota_handle, buf, recv_len);
@@ -154,8 +165,12 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
         }
         else
         {
-            // STREAM TO P4
-            uart_send_frame(CMD_STREAM_FIRMWARE, (uint8_t *)buf, recv_len);
+            // Reset command latch state before sending the data block
+            last_received_cmd = 0;
+
+            // STREAM TO P4 (C6 → P4 over UART in optimized 4KB chunks)
+            uart_send_firmware_chunk((uint8_t *)buf, recv_len);
+            
             total_streamed += recv_len;
         }
 
@@ -205,13 +220,12 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
             return ESP_FAIL;
         }
 
-        ESP_LOGI(TAG, "P4 OTA stream complete");
-        uart_send_frame(CMD_STREAM_FIRMWARE_DONE, NULL, 0);
+        ESP_LOGI(TAG, "P4 OTA stream complete. Informing P4...");
+        uart_send_frame(CMD_C6_UPLOAD_END, NULL, 0);        // bracket upload
+        uart_send_frame(CMD_STREAM_FIRMWARE_DONE, NULL, 0); // trigger finalize
 
         httpd_resp_set_hdr(req, "Connection", "close");
         httpd_resp_sendstr(req, "OK");
-
-        // DO NOT REBOOT C6
     }
 
     return ESP_OK;

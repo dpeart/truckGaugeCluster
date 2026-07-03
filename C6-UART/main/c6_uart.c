@@ -3,6 +3,7 @@
 #include "GaugePacket.h"
 #include "driver/uart.h"
 #include "esp_log.h"
+#include "esp_task_wdt.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -16,18 +17,19 @@
 #define UART_PORT UART_NUM_1
 #define UART_TX_PIN GPIO_NUM_21
 #define UART_RX_PIN GPIO_NUM_20
-#define UART_BAUD 115200
+#define UART_RTS_PIN GPIO_NUM_23
+#define UART_CTS_PIN GPIO_NUM_22
+#define UART_BAUD 460800
 
-#define FRAME_START 0xAA
-#define ESCAPE 0x7D
-#define MAX_PAYLOAD 256
+#define FRAME_MAGIC 0x54414F50
 
 static SemaphoreHandle_t ack_sem = NULL;
-bool ota_upload_in_progress = false; // true = OTA upload in progress, false = OTA idle
+static SemaphoreHandle_t uart_mutex = NULL;
 
-// ---------------------------------------------------------
-// CRC
-// ---------------------------------------------------------
+bool ota_upload_in_progress = false;
+uint8_t last_received_cmd = 0;
+bool wait_for_ack(uint32_t timeout_ms);
+
 uint8_t calc_crc(const uint8_t *data, int len)
 {
     uint8_t crc = 0;
@@ -36,116 +38,157 @@ uint8_t calc_crc(const uint8_t *data, int len)
     return crc;
 }
 
-// ---------------------------------------------------------
-// Escaping helper
-// ---------------------------------------------------------
-static inline void uart_put_byte(uint8_t b, uint8_t *buf, int *idx)
-{
-    if (b == FRAME_START || b == ESCAPE)
-    {
-        buf[(*idx)++] = ESCAPE;
-        buf[(*idx)++] = (uint8_t)(b ^ 0x20);
-    }
-    else
-    {
-        buf[(*idx)++] = b;
-    }
-}
-
-// ---------------------------------------------------------
-// Send frame
-// ---------------------------------------------------------
+// Synchronous Transmission Protocol (C6 Side)
 void uart_send_frame(uint8_t cmd, const uint8_t *payload, uint16_t len)
 {
+    if (!uart_mutex)
+        return;
+
     if (len > MAX_PAYLOAD)
         len = MAX_PAYLOAD;
 
-    uint8_t len_l = len & 0xFF;
-    uint8_t len_h = (len >> 8) & 0xFF;
+    if (xSemaphoreTake(uart_mutex, portMAX_DELAY) == pdTRUE)
+    {
+        uint32_t magic = FRAME_MAGIC;
+        static uint8_t header[7];
 
-    uint8_t tmp[3 + MAX_PAYLOAD];
-    tmp[0] = cmd;
-    tmp[1] = len_l;
-    tmp[2] = len_h;
-    if (len > 0)
-        memcpy(&tmp[3], payload, len);
+        header[0] = (uint8_t)(magic & 0xFF);
+        header[1] = (uint8_t)((magic >> 8) & 0xFF);
+        header[2] = (uint8_t)((magic >> 16) & 0xFF);
+        header[3] = (uint8_t)((magic >> 24) & 0xFF);
+        header[4] = cmd;
+        header[5] = (uint8_t)(len & 0xFF);
+        header[6] = (uint8_t)((len >> 8) & 0xFF);
 
-    uint8_t crc = calc_crc(tmp, len + 3);
+        // Scratchpad validation calculation
+        uint8_t *tmp = (uint8_t *)malloc(7 + len);
+        if (!tmp)
+        {
+            ESP_LOGE(TAG, "TX Heap allocation failure");
+            xSemaphoreGive(uart_mutex);
+            return;
+        }
 
-    uint8_t buf[4 + (MAX_PAYLOAD * 2) + 2];
-    int idx = 0;
+        memcpy(&tmp[0], header, 7);
+        if (len > 0 && payload != NULL)
+            memcpy(&tmp[7], payload, len);
 
-    buf[idx++] = FRAME_START;
+        uint8_t crc = calc_crc(tmp, 7 + len);
+        free(tmp);
 
-    uart_put_byte(cmd, buf, &idx);
-    uart_put_byte(len_l, buf, &idx);
-    uart_put_byte(len_h, buf, &idx);
+        // Hardware Flow Backpressure verification
+        size_t free_size = 0;
+        while (1)
+        {
+            if (uart_get_tx_buffer_free_size(UART_PORT, &free_size) == ESP_OK)
+            {
+                if (free_size >= (7 + len + 1))
+                {
+                    break;
+                }
+            }
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
 
-    for (int i = 0; i < len; i++)
-        uart_put_byte(payload[i], buf, &idx);
+        // Transmit out contiguous raw components directly
+        uart_write_bytes(UART_PORT, header, 7);
+        if (len > 0 && payload != NULL)
+        {
+            uart_write_bytes(UART_PORT, payload, len);
+        }
+        uart_write_bytes(UART_PORT, &crc, 1);
 
-    uart_put_byte(crc, buf, &idx);
-
-    uart_write_bytes(UART_PORT, buf, idx);
+        xSemaphoreGive(uart_mutex);
+    }
 }
 
-// ---------------------------------------------------------
-// ACK wait
-// ---------------------------------------------------------
 bool wait_for_ack(uint32_t timeout_ms)
 {
-    if (xSemaphoreTake(ack_sem, pdMS_TO_TICKS(timeout_ms)) == pdTRUE)
-        return true;
+    if (ack_sem == NULL)
+        return false;
 
+    last_received_cmd = 0;
+
+    if (xSemaphoreTake(ack_sem, pdMS_TO_TICKS(timeout_ms)) == pdTRUE)
+    {
+        if (last_received_cmd == CMD_ACK)
+        {
+            return true;
+        }
+        if (last_received_cmd == CMD_NACK)
+        {
+            return false;
+        }
+    }
+
+    ESP_LOGE("UART_ACK", "Timeout waiting for ACK after %lu ms", timeout_ms);
     return false;
 }
 
-// ---------------------------------------------------------
-// Send GaugePacket
-// ---------------------------------------------------------
 void uart_send_gauge_packet(const GaugePacket *pkt)
 {
-    uart_send_frame(CMD_STREAM_GAUGE,
-                    (const uint8_t *)pkt,
-                    sizeof(GaugePacket));
+    uart_send_frame(CMD_STREAM_GAUGE, (const uint8_t *)pkt, sizeof(GaugePacket));
 }
 
-// ---------------------------------------------------------
-// OTA chunk sender (C6 → P4)
-// ---------------------------------------------------------
 void uart_send_firmware_chunk(const uint8_t *data, uint16_t len)
 {
     while (len > 0)
     {
-        uint16_t chunk_len = (len > 256) ? 256 : len;
+        uint16_t chunk_len = (len > MAX_PAYLOAD) ? MAX_PAYLOAD : len;
 
+        ESP_LOGI(TAG, "Sending firmware frame to P4, size: %u bytes", chunk_len);
         uart_send_frame(CMD_STREAM_FIRMWARE, data, chunk_len);
 
-        if (!wait_for_ack(1000))
+        if (wait_for_ack(3000))
         {
-            ESP_LOGE(TAG, "P4 did not ACK");
+            if (last_received_cmd == CMD_ACK)
+            {
+                data += chunk_len;
+                len -= chunk_len;
+            }
+            else if (last_received_cmd == CMD_NACK)
+            {
+                ESP_LOGW(TAG, "P4 rejected chunk (NACK), retrying...");
+                vTaskDelay(pdMS_TO_TICKS(50));
+            }
+        }
+        else
+        {
+            ESP_LOGE(TAG, "UART timeout waiting for P4 4KB response");
             return;
         }
-
-        data += chunk_len;
-        len -= chunk_len;
     }
 }
 
-// ---------------------------------------------------------
-// RX command handler
-// ---------------------------------------------------------
 static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
 {
     switch (cmd)
     {
     case CMD_ACK:
-        xSemaphoreGive(ack_sem);
+    case CMD_NACK:
+        last_received_cmd = cmd;
+        if (ack_sem)
+        {
+            xSemaphoreGive(ack_sem);
+        }
         break;
 
     case CMD_PING:
-        ESP_LOGI(TAG, "Received PING, sending PONG");
+        ESP_LOGI(TAG, "Received PING from P4 (Reboot/Sync detected). Forcing state to TELEMETRY mode.");
+
+        // 1. Force the C6 mode back to normal operation
+        current_mode = MODE_TELEMETRY;
+        ota_upload_in_progress = false;
+
+        // 2. Shut down any active OTA network listeners/Wi-Fi configurations on the C6
+        exit_ota_mode();
+
+        // 3. Acknowledge back to the P4 that the handshake is successful
         uart_send_frame(CMD_PONG, NULL, 0);
+        break;
+
+    case CMD_PONG:
+        ESP_LOGI(TAG, "Received PONG");
         break;
 
     case CMD_MODE_C6_OTA:
@@ -170,19 +213,13 @@ static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
 
     case CMD_MODE_TELEMETRY:
         ESP_LOGW("C6_MODE", "Switching to TELEMETRY mode");
-
-        // 1. Fully exit OTA Wi-Fi mode
         exit_ota_mode();
-
-        // 2. Restore C6 internal mode
         current_mode = MODE_TELEMETRY;
         ota_upload_in_progress = false;
-
         break;
 
     case CMD_DUMMY_DATA:
-        ESP_LOGI(TAG, "Telemetry: %02X %02X %02X",
-                 payload[0], payload[1], payload[2]);
+        ESP_LOGI(TAG, "Telemetry: %02X %02X %02X", payload[0], payload[1], payload[2]);
         break;
 
     default:
@@ -191,130 +228,105 @@ static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
     }
 }
 
-// ---------------------------------------------------------
-// RX task (escaped protocol)
-// ---------------------------------------------------------
+// Synchronous Length-Preambled Receiver (C6 Side)
 static void uart_rx_task(void *arg)
 {
-    uint8_t buf[256];
-    uint8_t payload[256];
-    int state = -1;
-    uint8_t cmd = 0;
-    uint16_t len = 0;
-    int payload_idx = 0;
-    bool escape_next = false;
+    // The C6 usually processes small inbound messages (ACK, NACK, PONGS)
+    // but we use a robust dynamic buffer for stability
+    uint32_t allocation_sz = 512;
+    uint8_t *payload = (uint8_t *)malloc(allocation_sz);
+    uint8_t *tmp_crc_buf = (uint8_t *)malloc(7 + allocation_sz);
+
+    if (!payload || !tmp_crc_buf)
+    {
+        ESP_LOGE(TAG, "RX Buff Allocation Error");
+        if (payload)
+            free(payload);
+        if (tmp_crc_buf)
+            free(tmp_crc_buf);
+        vTaskDelete(NULL);
+        return;
+    }
+
+    uint32_t shift_reg = 0;
 
     while (true)
     {
-        int n = uart_read_bytes(UART_PORT, buf, sizeof(buf), pdMS_TO_TICKS(20));
+        uint8_t b;
+        int n = uart_read_bytes(UART_PORT, &b, 1, portMAX_DELAY);
         if (n <= 0)
             continue;
 
-        for (int i = 0; i < n; i++)
+        shift_reg = (shift_reg >> 8) | ((uint32_t)b << 24);
+
+        if (shift_reg == FRAME_MAGIC)
         {
-            uint8_t b = buf[i];
+            shift_reg = 0;
 
-            // Unescape
-            if (escape_next)
+            uint8_t header_meta[3];
+            if (uart_read_bytes(UART_PORT, header_meta, 3, pdMS_TO_TICKS(50)) != 3)
+                continue;
+
+            uint8_t cmd = header_meta[0];
+            uint16_t len = header_meta[1] | ((uint16_t)header_meta[2] << 8);
+
+            if (len > allocation_sz)
             {
-                b ^= 0x20;
-                escape_next = false;
-            }
-            else if (b == ESCAPE)
-            {
-                escape_next = true;
+                // Drop if inbound data exceeds our local allocated array sizes
                 continue;
             }
 
-            // Frame start
-            if (b == FRAME_START && state == -1)
-            {
-                state = 0;
-                len = 0;
-                payload_idx = 0;
-                continue;
-            }
-
-            if (state == -1)
+            uint32_t fetch_bytes = len + 1;
+            if (uart_read_bytes(UART_PORT, payload, fetch_bytes, pdMS_TO_TICKS(200)) != fetch_bytes)
                 continue;
 
-            switch (state)
+            uint8_t wire_crc = payload[len];
+
+            tmp_crc_buf[0] = (uint8_t)(FRAME_MAGIC & 0xFF);
+            tmp_crc_buf[1] = (uint8_t)((FRAME_MAGIC >> 8) & 0xFF);
+            tmp_crc_buf[2] = (uint8_t)((FRAME_MAGIC >> 16) & 0xFF);
+            tmp_crc_buf[3] = (uint8_t)((FRAME_MAGIC >> 24) & 0xFF);
+            tmp_crc_buf[4] = cmd;
+            tmp_crc_buf[5] = header_meta[1];
+            tmp_crc_buf[6] = header_meta[2];
+            if (len > 0)
+                memcpy(&tmp_crc_buf[7], payload, len);
+
+            if (calc_crc(tmp_crc_buf, 7 + len) == wire_crc)
             {
-            case 0:
-                cmd = b;
-                state = 1;
-                break;
-
-            case 1:
-                len = b;
-                state = 2;
-                break;
-
-            case 2:
-                len |= ((uint16_t)b << 8);
-
-                if (len > sizeof(payload))
-                {
-                    ESP_LOGW(TAG, "Invalid length %u, dropping frame", len);
-                    state = -1;
-                    break;
-                }
-
-                payload_idx = 0;
-                state = (len == 0) ? 4 : 3;
-                break;
-
-            case 3:
-                payload[payload_idx++] = b;
-
-                if (payload_idx >= len)
-                    state = 4;
-
-                break;
-
-            case 4:
-            {
-                uint8_t tmp[3 + 256];
-                tmp[0] = cmd;
-                tmp[1] = (uint8_t)(len & 0xFF);
-                tmp[2] = (uint8_t)(len >> 8);
-
-                if (len > 0)
-                    memcpy(&tmp[3], payload, len);
-
-                if (calc_crc(tmp, len + 3) == b)
-                    handle_command(cmd, payload, len);
-                else
-                    ESP_LOGW(TAG, "CRC error");
-
-                state = -1;
-                break;
-            }
+                handle_command(cmd, payload, len);
             }
         }
     }
+
+    free(payload);
+    free(tmp_crc_buf);
 }
 
-// ---------------------------------------------------------
-// Start UART
-// ---------------------------------------------------------
 void start_uart_rx_task(void)
 {
-    ack_sem = xSemaphoreCreateBinary();
+    if (uart_mutex == NULL)
+    {
+        uart_mutex = xSemaphoreCreateMutex();
+    }
+    if (ack_sem == NULL)
+    {
+        ack_sem = xSemaphoreCreateBinary();
+    }
 
     uart_config_t cfg = {
         .baud_rate = UART_BAUD,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-        .rx_flow_ctrl_thresh = 0,
+        .flow_ctrl = UART_HW_FLOWCTRL_CTS_RTS,
+        .rx_flow_ctrl_thresh = 64,
         .source_clk = UART_SCLK_DEFAULT};
 
-    uart_driver_install(UART_PORT, 4096, 4096, 0, NULL, 0);
-    uart_param_config(UART_PORT, &cfg);
-    uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN,
-                 UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    // Allocate 8192 byte driver ring buffers to accept big packets safely
+    ESP_ERROR_CHECK(uart_driver_install(UART_PORT, 8192, 8192, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(UART_PORT, &cfg));
+    ESP_ERROR_CHECK(uart_set_pin(UART_PORT, UART_TX_PIN, UART_RX_PIN, UART_RTS_PIN, UART_CTS_PIN));
 
     xTaskCreate(uart_rx_task, "uart_rx_task", 4096, NULL, 5, NULL);
 }

@@ -18,6 +18,8 @@ static c6_mode_t last_mode = -1;
 
 void app_main(void)
 {
+    esp_log_level_set("*", ESP_LOG_NONE);
+    esp_log_level_set("*", ESP_LOG_WARN);
     ESP_LOGI(TAG, "Starting C6 Firmware");
 
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -49,32 +51,32 @@ void app_main(void)
 
             switch (current_mode)
             {
-                case MODE_TELEMETRY:
-                    do_mode_telemetry();
-                    break;
+            case MODE_TELEMETRY:
+                do_mode_telemetry();
+                break;
 
-                case MODE_C6_OTA:
-                    do_mode_c6_ota();
-                    break;
+            case MODE_C6_OTA:
+                do_mode_c6_ota();
+                break;
 
-                case MODE_P4_OTA:
-                    do_mode_p4_ota();
-                    current_mode = MODE_TELEMETRY;
-                    break;
+            case MODE_P4_OTA:
+                do_mode_p4_ota();
+                current_mode = MODE_TELEMETRY;
+                break;
 
-                case MODE_FACTORY_RESET:
-                    do_mode_factory_reset();
-                    current_mode = MODE_TELEMETRY;
-                    break;
+            case MODE_FACTORY_RESET:
+                do_mode_factory_reset();
+                current_mode = MODE_TELEMETRY;
+                break;
 
-                case MODE_REBOOT:
-                    do_mode_reboot();
-                    break;
-                    
-                case MODE_PROVISIONING:
-                    do_mode_provisioning();
-                    current_mode = MODE_TELEMETRY;
-                    break;
+            case MODE_REBOOT:
+                do_mode_reboot();
+                break;
+
+            case MODE_PROVISIONING:
+                do_mode_provisioning();
+                current_mode = MODE_TELEMETRY;
+                break;
             }
         }
 

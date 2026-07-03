@@ -15,8 +15,8 @@ extern "C"
      * @brief Animates the 'speed' meter needle smoothly.
      * @param target_speed The new speed value to animate to.
      */
-    void update_speed_ui(int32_t current_speed, int32_t target_speed);
-    void update_tach_ui(int32_t current_rpm, int32_t target_rpm);
+    void update_speed_ui(int32_t target_speed);
+    void update_tach_ui(int32_t target_rpm);
 
     void generateTurnSignalPattern();
     void updateIndicators(const GaugePacket& pkt);

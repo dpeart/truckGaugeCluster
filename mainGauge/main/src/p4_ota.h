@@ -2,6 +2,7 @@
 #include <cstdint>
 
 typedef enum {
+    OTA_EVENT_BEGIN,
     OTA_EVENT_CHUNK,
     OTA_EVENT_FINALIZE
 } ota_event_type_t;
@@ -9,7 +10,7 @@ typedef enum {
 typedef struct {
     ota_event_type_t type;
     uint32_t len;
-    uint8_t data[256];
+    uint8_t data[4096];
 } ota_event_t;
 
 void p4_ota_begin();
