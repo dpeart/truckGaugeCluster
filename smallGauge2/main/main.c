@@ -35,7 +35,11 @@
 #define LVGL_BUF_LEN (EXAMPLE_LCD_WIDTH * EXAMPLE_LCD_HEIGHT)
 
 static const char *TAG = "MAIN";
-#define ONBOARD_LED_GPIO  2
+#define ONBOARD_LED_GPIO 2
+
+// Expose these so main.c can see them
+volatile bool ui_ready = false;
+volatile bool lvgl_started = false;
 
 static void lvgl_task(void *arg)
 {
@@ -70,77 +74,35 @@ static void lvgl_task(void *arg)
 void gauge_task(void *arg)
 {
     GaugePacket pkt;
-    memset(&pkt, 0, sizeof(pkt));
-    bool was_stale = true;
-
-    int32_t last_iat = -1;
-    int32_t last_egt = -1;
-    int32_t last_battery = -1;
-
-    static float iat_display = 0.0f;
-    static float egt_display = 0.0f;
-    static float battery_display = 0.0f;
-
-    // Because guage_task starts before the UI is fully initialized, we wait here until the UI signals it's ready for updates.
-    // This prevents us from trying to update LVGL objects that haven't been created yet.
-    while (!ui_ready || !lvgl_started)
-    {
-        ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
-                 ui_ready, lvgl_started, &ui_ready, &lvgl_started);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
+    static float iat_lerp = 0.0f;
+    static float egt_lerp = 0.0f;
+    static float battery_lerp = 0.0f;
 
     while (1)
     {
-        bool is_stale = gauge_state_is_stale(2000);
-        if (is_stale != was_stale) {
-            if (is_stale) ESP_LOGW(TAG, "ESP-NOW Link LOST");
-            else ESP_LOGI(TAG, "ESP-NOW Link RESTORED");
-            was_stale = is_stale;
-        }
-
-        gauge_state_get(&pkt);
-        lvgl_lock();
-
-        if (pkt.iaTemp != last_iat)
+        if (get_wifi_state() == APP_WIFI_STATE_ESP_NOW_ONLY)
         {
-            ESP_LOGI(TAG, "lastiat: %d, currentiat: %d", last_iat, pkt.iaTemp);
+            gauge_state_get(&pkt);
 
-            iat_display = iat_display * 0.85f + pkt.iaTemp * 0.15f;
+            // Apply LERP for smooth needle movement
+            iat_lerp = lerp(iat_lerp, (float)pkt.iaTemp, 0.15f);
+            egt_lerp = lerp(egt_lerp, (float)pkt.EGTemp, 0.15f);
+            battery_lerp = lerp(battery_lerp, (float)pkt.batteryLevel, 0.15f);
 
-            meter_anim_cb(objects.iat,
-                          screen_main_state.iat_temp,
-                          (int)iat_display);
+            lvgl_lock();
+            // Optimized calls (conditional logic handled in updateUI.c)
+            update_iat_meter((int32_t)iat_lerp);
+            update_egt_meter((int32_t)egt_lerp);
+            update_battery_arc((int32_t)battery_lerp);
+            lvgl_unlock();
 
-            last_iat = pkt.iaTemp;
+            vTaskDelay(pdMS_TO_TICKS(16));
         }
-
-        if (pkt.EGTemp != last_egt)
+        else
         {
-            ESP_LOGI(TAG, "lastegt: %d, currentegt: %d", last_egt, pkt.EGTemp);
-
-            egt_display = egt_display * 0.85f + pkt.EGTemp * 0.15f;
-
-            meter_anim_cb(objects.egt,
-                          screen_main_state.egt_temp,
-                          (int)egt_display);
-
-            last_egt = pkt.EGTemp;
+            // Pause telemetry during OTA to prioritize network stack
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
-
-        if (pkt.batteryLevel != last_battery)
-        {
-            ESP_LOGI(TAG, "lastbattery: %d, currentbattery: %d", last_battery, pkt.batteryLevel);
-
-            battery_display = battery_display * 0.85f + pkt.batteryLevel * 0.15f;
-
-            arc_anim_cb(objects.battery, (int)battery_display);
-
-            last_battery = pkt.batteryLevel;
-        }
-        lvgl_unlock();
-
-        vTaskDelay(pdMS_TO_TICKS(16));
     }
 }
 
@@ -148,7 +110,8 @@ void monitor_task(void *arg)
 {
     const esp_partition_t *running = esp_ota_get_running_partition();
 
-    while (1) {
+    while (1)
+    {
         char ip_addr_str[16] = "N/A";
         get_wifi_ip_str(ip_addr_str, sizeof(ip_addr_str));
 
@@ -159,35 +122,35 @@ void monitor_task(void *arg)
     }
 }
 
-void Driver_Loop(void *parameter)
-{
-    while (1)
-    {
-        QMI8658_Loop();
-        PCF85063_Loop();
-        BAT_Get_Volts();
-        PWR_Loop();
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
+// void Driver_Loop(void *parameter)
+// {
+//     while (1)
+//     {
+//         QMI8658_Loop();
+//         PCF85063_Loop();
+//         BAT_Get_Volts();
+//         PWR_Loop();
+//         vTaskDelay(pdMS_TO_TICKS(100));
+//     }
+// }
 
 void Driver_Init(void)
 {
-    PWR_Init();
-    BAT_Init();
+    // PWR_Init();
+    // BAT_Init();
     I2C_Init();
     EXIO_Init();
-    PCF85063_Init();
-    QMI8658_Init();
+    // PCF85063_Init();
+    // QMI8658_Init();
 
-    xTaskCreatePinnedToCore(
-        Driver_Loop,
-        "Driver Loop",
-        4096,
-        NULL,
-        3,
-        NULL,
-        0);
+    // xTaskCreatePinnedToCore(
+    //     Driver_Loop,
+    //     "Driver Loop",
+    //     4096,
+    //     NULL,
+    //     3,
+    //     NULL,
+    //     0);
 }
 
 void app_main(void)
@@ -221,6 +184,12 @@ void app_main(void)
     Set_Backlight(100);
 
     LVGL_Init();
+    // Bind the hardware instantiation handle to the active LVGL driver mapping
+    if (disp != NULL && disp->driver != NULL)
+    {
+        disp->driver->user_data = panel_handle;
+    }
+
     lvgl_lock_init();
 
     xTaskCreatePinnedToCore(

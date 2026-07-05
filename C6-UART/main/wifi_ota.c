@@ -15,9 +15,9 @@
 
 static const char *TAG = "WIFI_OTA";
 
-#define HOSTNAME "maingaugec6"
-#define PROV_SSID "maingaugec6"
-#define PROV_POP "truck123"
+#define HOSTNAME "maingauge"
+#define PROV_SSID "maingauge"
+#define PROV_POP  "truck123"
 
 static app_wifi_state_t s_wifi_state = APP_WIFI_STATE_INIT;
 bool g_ota_mode_enabled = false;
@@ -27,6 +27,9 @@ static bool s_provisioning_active = false;
 
 // OTA target: C6 (self) vs P4 (UART stream)
 static ota_target_t s_ota_target = OTA_TARGET_C6;
+
+// Mode to return to after provisioning completes
+static c6_mode_t s_return_mode = MODE_TELEMETRY;
 
 static void set_wifi_mode(app_wifi_state_t state);
 
@@ -190,6 +193,10 @@ static void wifi_prov_event_handler(void *arg,
 
         ESP_LOGI(TAG, "Switching to ESP-NOW-only mode after provisioning success");
         set_wifi_mode(APP_WIFI_STATE_ESP_NOW_ONLY);
+
+        // Return to the mode that requested provisioning (OTA or whatever)
+        ESP_LOGI(TAG, "Returning to previous mode after provisioning");
+        current_mode = s_return_mode;
         break;
     }
 
@@ -211,6 +218,9 @@ static void wifi_prov_event_handler(void *arg,
 
         ESP_LOGI(TAG, "Falling back to ESP-NOW-only mode after provisioning failure");
         set_wifi_mode(APP_WIFI_STATE_ESP_NOW_ONLY);
+
+        // On failure, always fall back to telemetry
+        current_mode = MODE_TELEMETRY;
         break;
     }
 
@@ -279,42 +289,43 @@ static void set_wifi_mode(app_wifi_state_t state)
         ESP_LOGI(TAG, "Wi-Fi state: INIT");
         break;
 
-case APP_WIFI_STATE_ESP_NOW_ONLY:
-    ESP_LOGI(TAG, "Wi-Fi state: ESP-NOW-only");
+    case APP_WIFI_STATE_ESP_NOW_ONLY:
+        ESP_LOGI(TAG, "Wi-Fi state: ESP-NOW-only");
 
-    // Always force STA mode + no power save
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+        // Always force STA mode + no power save
+        ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+        ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
-    // --- FIX: Wi-Fi may be STOPPED after exit_ota_mode() ---
-    // Start Wi-Fi if needed (safe to call even if already started)
-    {
-        esp_err_t err = esp_wifi_start();
-        if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_STARTED) {
-            ESP_LOGW(TAG, "esp_wifi_start failed: %s", esp_err_to_name(err));
+        // Start Wi-Fi if needed (safe to call even if already started)
+        {
+            esp_err_t err = esp_wifi_start();
+            if (err != ESP_OK && err != ESP_ERR_WIFI_NOT_STARTED)
+            {
+                ESP_LOGW(TAG, "esp_wifi_start failed: %s", esp_err_to_name(err));
+            }
         }
-    }
 
-    // --- FIX: Setting channel can fail if Wi-Fi is mid-transition ---
-    {
-        esp_err_t err = esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "esp_wifi_set_channel failed: %s", esp_err_to_name(err));
-            // DO NOT crash — ESP-NOW will still work on the current channel
+        // Setting channel can fail if Wi-Fi is mid-transition
+        {
+            esp_err_t err = esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
+            if (err != ESP_OK)
+            {
+                ESP_LOGW(TAG, "esp_wifi_set_channel failed: %s", esp_err_to_name(err));
+                // ESP-NOW will still work on the current channel
+            }
         }
-    }
 
-    // Clean up provisioning if needed
-    if (s_provisioning_active)
-    {
-        ESP_LOGI(TAG, "Cleaning up provisioning manager in ESP-NOW-only mode");
-        wifi_prov_mgr_deinit();
-        s_provisioning_active = false;
-    }
+        // Clean up provisioning if needed
+        if (s_provisioning_active)
+        {
+            ESP_LOGI(TAG, "Cleaning up provisioning manager in ESP-NOW-only mode");
+            wifi_prov_mgr_deinit();
+            s_provisioning_active = false;
+        }
 
-    // Ensure HTTP server is stopped
-    stop_webserver();
-    break;
+        // Ensure HTTP server is stopped
+        stop_webserver();
+        break;
 
     case APP_WIFI_STATE_PROVISIONING:
     {
@@ -339,7 +350,7 @@ case APP_WIFI_STATE_ESP_NOW_ONLY:
 
         s_provisioning_active = true;
         ESP_LOGI(TAG, "Provisioning manager initialized (active=1)");
-        // NOTE: no start_webserver() here; wifi_prov_mgr runs its own HTTP server
+        // wifi_prov_mgr runs its own HTTP server
         break;
     }
 
@@ -359,8 +370,6 @@ case APP_WIFI_STATE_ESP_NOW_ONLY:
             s_provisioning_active = false;
         }
 
-        // HTTP server is used for both C6_OTA and P4_OTA (browser uploads firmware),
-        // difference is handled inside ota_handler based on wifi_ota_get_target().
         start_webserver();
         break;
     }
@@ -368,9 +377,8 @@ case APP_WIFI_STATE_ESP_NOW_ONLY:
 
 void init_wifi_state_machine(void)
 {
-    ESP_LOGI(TAG, "Booting into ESP-NOW mode (provisioning only via P4 command)");
+    ESP_LOGI(TAG, "Booting into ESP-NOW mode (provisioning only via P4/OTA command)");
     set_wifi_mode(APP_WIFI_STATE_ESP_NOW_ONLY);
-    // C6_MODES will then switch into TELEMETRY mode on top of ESP-NOW.
 }
 
 // -----------------------------------------------------------------------------
@@ -379,6 +387,22 @@ void init_wifi_state_machine(void)
 void enter_ota_mode(void)
 {
     g_ota_mode_enabled = true;
+
+    // Check if provisioning exists before entering OTA
+    wifi_config_t cfg = {0};
+    esp_wifi_get_config(WIFI_IF_STA, &cfg);
+
+    if (strlen((char *)cfg.sta.ssid) == 0)
+    {
+        ESP_LOGW(TAG, "OTA requested but provisioning missing. Entering provisioning mode.");
+
+        // Remember the mode that requested OTA (C6_OTA or P4_OTA)
+        s_return_mode = current_mode;
+
+        // Switch to provisioning mode via mode loop
+        current_mode = MODE_PROVISIONING;
+        return;
+    }
 
     const char *tstr = (s_ota_target == OTA_TARGET_C6) ? "C6 OTA" : "P4 OTA";
     ESP_LOGI(TAG, "Entering %s mode (from state=%s)",
@@ -396,7 +420,7 @@ void exit_ota_mode(void)
     // Stop HTTP server
     stop_webserver();
 
-    // *** FIX: ensure Wi-Fi is not connecting or scanning ***
+    // Ensure Wi-Fi is not connecting or scanning
     esp_wifi_disconnect();
     esp_wifi_stop();
 
@@ -412,7 +436,7 @@ void exit_ota_mode(void)
 // -----------------------------------------------------------------------------
 void enter_provisioning_mode(void)
 {
-    ESP_LOGI(TAG, "Entering provisioning mode (requested by P4, current state=%s)",
+    ESP_LOGI(TAG, "Entering provisioning mode (requested by P4/OTA, current state=%s)",
              wifi_state_to_str(s_wifi_state));
     set_wifi_mode(APP_WIFI_STATE_PROVISIONING);
 }

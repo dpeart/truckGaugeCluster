@@ -82,8 +82,8 @@ void create_screen_main() {
             {
                 lv_meter_scale_t *scale = lv_meter_add_scale(obj);
                 state->scale = scale;
-                lv_meter_set_scale_ticks(obj, scale, 51, 0, 5, lv_color_hex(0xffffffff));
-                lv_meter_set_scale_major_ticks(obj, scale, 25, 3, 10, lv_color_hex(0xffffffff), 25);
+                lv_meter_set_scale_ticks(obj, scale, 101, 0, 5, lv_color_hex(0xffffffff));
+                lv_meter_set_scale_major_ticks(obj, scale, 50, 3, 10, lv_color_hex(0xffffffff), 25);
                 lv_meter_set_scale_range(obj, scale, 150, 250, 90, 140);
                 {
                     lv_meter_indicator_t *indicator = lv_meter_add_arc(obj, scale, 3, lv_color_hex(0xffffffff), 0);
@@ -92,7 +92,7 @@ void create_screen_main() {
                     lv_meter_set_indicator_end_value(obj, indicator, 250);
                 }
                 {
-                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -55);
+                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -23);
                     state->coolant_temp = indicator;
                     lv_meter_set_indicator_value(obj, indicator, 0);
                 }
@@ -125,7 +125,7 @@ void create_screen_main() {
                     lv_meter_set_indicator_end_value(obj, indicator, 0);
                 }
                 {
-                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -45);
+                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -23);
                     state->oil_pressure = indicator;
                     lv_meter_set_indicator_value(obj, indicator, 0);
                 }
@@ -147,7 +147,7 @@ void create_screen_main() {
             objects.fuel_level = obj;
             lv_obj_set_pos(obj, 0, 0);
             lv_obj_set_size(obj, 360, 360);
-            lv_arc_set_value(obj, 25);
+            lv_arc_set_value(obj, 21);
             lv_arc_set_mode(obj, LV_ARC_MODE_REVERSE);
             lv_arc_set_bg_start_angle(obj, 65);
             lv_arc_set_bg_end_angle(obj, 115);

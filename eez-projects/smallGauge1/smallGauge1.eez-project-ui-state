@@ -1,8 +1,9 @@
 {
   "navigation": {
     "selectedUserPageObject": "[smallGauge1.eez-project]:/userPages/0",
+    "selectedActionObject": "[smallGauge1.eez-project]:/actions/0",
     "selectedFontObject": "[smallGauge1.eez-project]:/fonts/1",
-    "selectedBitmapObject": "[smallGauge1.eez-project]:/bitmaps/0",
+    "selectedBitmapObject": "[smallGauge1.eez-project]:/bitmaps/4",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Actions"
     }
@@ -119,12 +120,13 @@
             {
               "type": "row",
               "id": "#e4afc47c-b9b2-46df-ba5f-a95ea543e149",
-              "weight": 15,
+              "weight": 30.165101929842088,
               "children": [
                 {
                   "type": "tabset",
                   "id": "#bdd8814a-7b11-4b22-90fa-f36f5f7a5d82",
                   "weight": 1,
+                  "selected": 2,
                   "enableClose": false,
                   "children": [
                     {
@@ -167,8 +169,7 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -191,7 +192,7 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 48.04649265905383,
+              "weight": 32.88139072921175,
               "selected": 2,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
@@ -253,7 +254,8 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -1085,7 +1087,9 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
-          "5": {},
+          "5": {
+            "$selected": true
+          },
           "6": {},
           "7": {}
         }
@@ -1111,6 +1115,7 @@
   "searchMatchWholeWord": false,
   "replaceEnabled": false,
   "replaceText": "",
+  "pageRuntimeFrontFace": true,
   "breakpoints": {},
   "watchExpressions": [],
   "showComponentDescriptions": true,
@@ -1128,5 +1133,5 @@
   "globalFlowZoom": true,
   "flowZoom": 1.25,
   "implementationLanguage": "C",
-  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\Roboto_Condensed\\static\\RobotoCondensed-Medium.ttf"
+  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\smallGauge1\\smallGague1BG.png"
 }

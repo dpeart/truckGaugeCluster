@@ -5,6 +5,8 @@
 #include "esp_ota_ops.h"
 #include "nvs_flash.h"
 #include "wifi_ota.h"
+#include "wifi_provisioning/manager.h"
+#include "esp_wifi.h"
 
 static const char *TAG_UI = "UI";
 
@@ -56,30 +58,19 @@ void action_button_pressed(lv_event_t *e)
         esp_restart();
         break;
 
-    case 2: // Factory Reset
-        ESP_LOGI(TAG_UI, "Factory Reset button pressed");
+    case 2: // Reset Provisioning
+        ESP_LOGI(TAG_UI, "Reset provisioning button pressed");
 
-        // 1. Erase NVS (WiFi creds, your settings, OTA flags, etc.)
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ESP_ERROR_CHECK(nvs_flash_init());
+        // Remove Wi-Fi provisioning data only
+        ESP_LOGI(TAG_UI, "Erasing Wi-Fi provisioning data...");
+        wifi_prov_mgr_reset_provisioning();
 
-        // 2. Force bootloader to boot from factory partition
-        const esp_partition_t *factory = esp_partition_find_first(
-            ESP_PARTITION_TYPE_APP,
-            ESP_PARTITION_SUBTYPE_APP_FACTORY,
-            NULL);
+        // Optional: also clear Wi-Fi driver STA config
+        ESP_LOGI(TAG_UI, "Clearing Wi-Fi STA config...");
+        wifi_config_t empty_cfg = {0};
+        esp_wifi_set_config(WIFI_IF_STA, &empty_cfg);
 
-        if (factory)
-        {
-            ESP_LOGI(TAG_UI, "Setting boot partition to factory: %s", factory->label);
-            ESP_ERROR_CHECK(esp_ota_set_boot_partition(factory));
-        }
-        else
-        {
-            ESP_LOGE(TAG_UI, "Factory partition not found!");
-        }
-
-        // 3. Reboot
+        ESP_LOGI(TAG_UI, "Factory reset complete, rebooting...");
         esp_restart();
         break;
 

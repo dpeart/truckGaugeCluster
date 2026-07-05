@@ -37,7 +37,7 @@ idf_component_register(
 
         # Explicit driver sources (these MUST be listed)
         "./EXIO/TCA9554PWR.c"
-        "./Audio_Driver/PCM5101.c"
+        # "./Audio_Driver/PCM5101.c"
         # "./MIC_Driver/MIC_Speech.c"
 
         "./LCD_Driver/esp_lcd_st77916/esp_lcd_st77916.c"
@@ -48,17 +48,17 @@ idf_component_register(
 
         "./LVGL_Driver/LVGL_Driver.c"   # <-- LVGL_Init() lives here
 
-        "./LVGL_UI/LVGL_Example.c"
-        "./LVGL_UI/LVGL_Music.c"
+        # "./LVGL_UI/LVGL_Example.c"
+        # "./LVGL_UI/LVGL_Music.c"
 
-        "./SD_Card/SD_MMC.c"
+        # "./SD_Card/SD_MMC.c"
 
         "./I2C_Driver/I2C_Driver.c"
-        "./PCF85063/PCF85063.c"
-        "./QMI8658/QMI8658.c"
+        # "./PCF85063/PCF85063.c"
+        # "./QMI8658/QMI8658.c"
 
-        "./BAT_Driver/BAT_Driver.c"
-        "./PWR_Key/PWR_Key.c"
+        # "./BAT_Driver/BAT_Driver.c"
+        # "./PWR_Key/PWR_Key.c"
 
         "./Wireless/Wireless.c"
 

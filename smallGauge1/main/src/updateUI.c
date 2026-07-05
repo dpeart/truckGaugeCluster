@@ -1,41 +1,28 @@
 #include "updateUI.h"
-#include "esp_log.h"
-#include "esp_timer.h"
-#include "digitalPins.h"
-#include "GaugePacket.h"
+#include <math.h>
 
+// Static state tracking
+static int32_t cached_coolant = -999;
+static int32_t cached_oil = -999;
+static int32_t cached_fuel = -999;
 
-volatile bool ui_ready = false;
-volatile bool lvgl_started = false;
-
-void meter_anim_cb(lv_obj_t *meter, lv_meter_indicator_t *ind, int32_t val)
-{
-    lv_meter_set_indicator_value(meter, ind, val);
+void update_coolant_meter(int32_t new_val) {
+    if (abs(new_val - cached_coolant) > UPDATE_THRESHOLD) {
+        lv_meter_set_indicator_value(objects.coolant_temp, screen_main_state.coolant_temp, new_val);
+        cached_coolant = new_val;
+    }
 }
 
-void arc_anim_cb(lv_obj_t *arc, int32_t val)
-{
-    lv_arc_set_value(arc, val);
+void update_oil_pressure_meter(int32_t new_val) {
+    if (abs(new_val - cached_oil) > UPDATE_THRESHOLD) {
+        lv_meter_set_indicator_value(objects.oil_pressure, screen_main_state.oil_pressure, new_val);
+        cached_oil = new_val;
+    }
 }
 
-// // Callback for the LVGL animation engine
-// void coolant_anim_cb(void *var, int32_t val)
-// {
-//     // Uses the 'speed' object from screens.h
-//     lv_meter_set_indicator_value(objects.coolant_temp, (lv_meter_indicator_t *)var, val);
-//     // ESP_LOGI("tag", "%d", val);
-// }
-
-// void oil_pressure_anim_cb(void *var, int32_t val)
-// {
-
-//     // Update the indicator
-//     lv_meter_set_indicator_value(objects.oil_pressure, (lv_meter_indicator_t *)var, val);
-// }
-
-// void fuel_level_anim_cb(void *var, int32_t val)
-// {
-
-//     // Update the indicator
-//     lv_arc_set_value(objects.fuel_level, val);
-// }
+void update_fuel_arc(int32_t new_val) {
+    if (abs(new_val - cached_fuel) > UPDATE_THRESHOLD) {
+        lv_arc_set_value(objects.fuel_level, new_val);
+        cached_fuel = new_val;
+    }
+}

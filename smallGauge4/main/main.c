@@ -37,6 +37,10 @@
 static const char *TAG = "MAIN";
 #define ONBOARD_LED_GPIO  2
 
+// These are the actual definitions
+volatile bool ui_ready = false;
+volatile bool lvgl_started = false;
+
 static void lvgl_task(void *arg)
 {
     static bool first = true;
@@ -70,76 +74,32 @@ static void lvgl_task(void *arg)
 void gauge_task(void *arg)
 {
     GaugePacket pkt;
-    memset(&pkt, 0, sizeof(pkt));
     bool was_stale = true;
+    static float oil_lerp = 0.0f;
+    static float boost_lerp = 0.0f;
 
-    int32_t last_oil = -1;
-    int32_t last_boost_pressure = -1;
-    // int32_t last_battery = -1;
-
-    static float oil_display = 0.0f;
-    static float boost_pressure_display = 0.0f;
-    // static float battery_display = 0.0f;
-
-    // Because guage_task starts before the UI is fully initialized, we wait here until the UI signals it's ready for updates.
-    // This prevents us from trying to update LVGL objects that haven't been created yet.
-    ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
-             ui_ready, lvgl_started, &ui_ready, &lvgl_started);
-    while (!ui_ready || !lvgl_started)
-    {
-        ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
-                 ui_ready, lvgl_started, &ui_ready, &lvgl_started);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
+    // Wait for UI initialization
+    while (!ui_ready || !lvgl_started) vTaskDelay(pdMS_TO_TICKS(10));
 
     while (1)
     {
         bool is_stale = gauge_state_is_stale(2000);
         if (is_stale != was_stale) {
-            if (is_stale) ESP_LOGW(TAG, "ESP-NOW Link LOST");
-            else ESP_LOGI(TAG, "ESP-NOW Link RESTORED");
+            if (is_stale) ESP_LOGW("GAUGE", "ESP-NOW Link LOST");
+            else ESP_LOGI("GAUGE", "ESP-NOW Link RESTORED");
             was_stale = is_stale;
         }
 
         gauge_state_get(&pkt);
+
+        // Apply LERP for smooth needle movement
+        oil_lerp = lerp(oil_lerp, (float)pkt.oilTemp, 0.15f);
+        boost_lerp = lerp(boost_lerp, (float)pkt.boostPressure, 0.15f);
+
         lvgl_lock();
-
-        if (pkt.oilTemp != last_oil)
-        {
-            ESP_LOGI(TAG, "lastoil: %d, currentoil: %d", last_oil, pkt.oilTemp);
-
-            oil_display = oil_display * 0.85f + pkt.oilTemp * 0.15f;
-
-            meter_anim_cb(objects.oil_temp,
-                          screen_main_state.oil_temp,
-                          (int)oil_display);
-
-            last_oil = pkt.oilTemp;
-        }
-
-        if (pkt.boostPressure != last_boost_pressure)
-        {
-            ESP_LOGI(TAG, "lastboost_pressure: %d, currentboost_pressure: %d", last_boost_pressure, pkt.boostPressure);
-
-            boost_pressure_display = boost_pressure_display * 0.85f + pkt.boostPressure * 0.15f;
-
-            meter_anim_cb(objects.boost_pressure,
-                          screen_main_state.boost_pressure,
-                          (int)boost_pressure_display);
-
-            last_boost_pressure = pkt.boostPressure;
-        }
-
-        // if (pkt.batteryLevel != last_battery)
-        // {
-        //     ESP_LOGI(TAG, "lastbattery: %d, currentbattery: %d", last_battery, pkt.batteryLevel);
-
-        //     battery_display = battery_display * 0.85f + pkt.batteryLevel * 0.15f;
-
-        //     arc_anim_cb(objects.battery, (int)battery_display);
-
-        //     last_battery = pkt.batteryLevel;
-        // }
+        // Optimized updates (conditional logic handled in updateUI.c)
+        update_oil_temp_meter((int32_t)oil_lerp);
+        update_boost_pressure_meter((int32_t)boost_lerp);
         lvgl_unlock();
 
         vTaskDelay(pdMS_TO_TICKS(16));
@@ -161,35 +121,35 @@ void monitor_task(void *arg)
     }
 }
 
-void Driver_Loop(void *parameter)
-{
-    while (1)
-    {
-        QMI8658_Loop();
-        PCF85063_Loop();
-        BAT_Get_Volts();
-        PWR_Loop();
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
+// void Driver_Loop(void *parameter)
+// {
+//     while (1)
+//     {
+//         QMI8658_Loop();
+//         PCF85063_Loop();
+//         BAT_Get_Volts();
+//         PWR_Loop();
+//         vTaskDelay(pdMS_TO_TICKS(100));
+//     }
+// }
 
 void Driver_Init(void)
 {
-    PWR_Init();
-    BAT_Init();
+    // PWR_Init();
+    // BAT_Init();
     I2C_Init();
     EXIO_Init();
-    PCF85063_Init();
-    QMI8658_Init();
+    // PCF85063_Init();
+    // QMI8658_Init();
 
-    xTaskCreatePinnedToCore(
-        Driver_Loop,
-        "Driver Loop",
-        4096,
-        NULL,
-        3,
-        NULL,
-        0);
+    // xTaskCreatePinnedToCore(
+    //     Driver_Loop,
+    //     "Driver Loop",
+    //     4096,
+    //     NULL,
+    //     3,
+    //     NULL,
+    //     0);
 }
 
 void app_main(void)

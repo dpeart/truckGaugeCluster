@@ -1,6 +1,7 @@
 #include "LVGL_Example.h"
 #include "LVGL_Music.h"
 #include <demos/lv_demos.h>
+#include "ST77916.h"
 // #include <demos/music/lv_demo_music_main.h>
 // #include <demos/music/lv_demo_music_list.h>
 

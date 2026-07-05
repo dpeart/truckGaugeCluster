@@ -7,7 +7,6 @@
 #include "esp_log.h"
 #include "lvgl.h"
 #include "demos/lv_demos.h"
-#include "ST77916.h"
 
 #ifdef __cplusplus
 extern "C" {

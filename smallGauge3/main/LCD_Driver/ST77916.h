@@ -25,7 +25,6 @@ extern "C" {
 
 #include "esp_lcd_st77916.h"
 #include "CST816.h"
-#include "LVGL_Driver.h"
 #include "TCA9554PWR.h"
 
 
@@ -34,7 +33,7 @@ extern "C" {
 #define EXAMPLE_LCD_COLOR_BITS              (16)
 
 #define ESP_PANEL_HOST_SPI_ID_DEFAULT       (SPI2_HOST)
-#define ESP_PANEL_LCD_SPI_MODE              (0)                   // 0/1/2/3, typically set to 0
+#define ESP_PANEL_LCD_SPI_MODE              (2)                   // 0/1/2/3, typically set to 0
 #define ESP_PANEL_LCD_SPI_CLK_HZ            (80 * 1000 * 1000)    // Should be an integer divisor of 80M, typically set to 40M
 #define ESP_PANEL_LCD_SPI_TRANS_QUEUE_SZ    (10)                  // Typically set to 10
 #define ESP_PANEL_LCD_SPI_CMD_BITS          (32)                  // Typically set to 32
@@ -54,6 +53,7 @@ extern "C" {
 #define EXAMPLE_LCD_BK_LIGHT_OFF_LEVEL !EXAMPLE_LCD_BK_LIGHT_ON_LEVEL
 
 #define ESP_PANEL_HOST_SPI_MAX_TRANSFER_SIZE   (2048)
+#define ESP_PANEL_HOST_SPI_MAX_TRANSFER_SIZE   (32 * 1024)
 
 #define LEDC_HS_TIMER          LEDC_TIMER_0
 #define LEDC_LS_MODE           LEDC_LOW_SPEED_MODE

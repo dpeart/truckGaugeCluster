@@ -488,17 +488,17 @@
                       "type": "NEEDLE_LINE",
                       "width": 5,
                       "color": "#FF7A00",
-                      "radiusModifier": -55,
+                      "radiusModifier": -23,
                       "value": 0,
                       "valueType": "literal"
                     }
                   ],
                   "objID": "734eb1c4-1215-45e1-edb7-9b671b4b9c10",
-                  "minorTickCount": 51,
+                  "minorTickCount": 101,
                   "minorTickLineWidth": 0,
                   "minorTickLength": 5,
                   "minorTickColor": "#ffffff",
-                  "nthMajor": 25,
+                  "nthMajor": 50,
                   "majorTickWidth": 3,
                   "majorTickLength": 10,
                   "majorTickColor": "#ffffff",
@@ -590,7 +590,7 @@
                       "type": "NEEDLE_LINE",
                       "width": 5,
                       "color": "#FF7A00",
-                      "radiusModifier": -45,
+                      "radiusModifier": -23,
                       "value": 0,
                       "valueType": "literal"
                     }
@@ -676,7 +676,7 @@
               "rangeMinType": "literal",
               "rangeMax": 100,
               "rangeMaxType": "literal",
-              "value": 25,
+              "value": 21,
               "valueType": "literal",
               "mode": "REVERSE",
               "bgStartAngle": 65,

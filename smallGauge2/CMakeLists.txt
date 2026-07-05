@@ -4,4 +4,4 @@ cmake_minimum_required(VERSION 3.16)
 add_compile_definitions(LV_CONF_INCLUDE_SIMPLE)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(smallGauge1)
+project(smallGauge2)

@@ -19,7 +19,7 @@ static c6_mode_t last_mode = -1;
 void app_main(void)
 {
     esp_log_level_set("*", ESP_LOG_NONE);
-    esp_log_level_set("*", ESP_LOG_WARN);
+    esp_log_level_set("*", ESP_LOG_INFO);
     ESP_LOGI(TAG, "Starting C6 Firmware");
 
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -61,7 +61,7 @@ void app_main(void)
 
             case MODE_P4_OTA:
                 do_mode_p4_ota();
-                current_mode = MODE_TELEMETRY;
+                // current_mode = MODE_TELEMETRY;
                 break;
 
             case MODE_FACTORY_RESET:

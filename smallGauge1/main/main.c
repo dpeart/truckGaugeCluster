@@ -34,8 +34,12 @@
 #define CONFIG_ESPNOW_CHANNEL 1
 #define LVGL_BUF_LEN (EXAMPLE_LCD_WIDTH * EXAMPLE_LCD_HEIGHT)
 
+// These are the actual definitions
+volatile bool ui_ready = false;
+volatile bool lvgl_started = false;
+
 static const char *TAG = "MAIN";
-#define ONBOARD_LED_GPIO  2
+#define ONBOARD_LED_GPIO 2
 
 static void lvgl_task(void *arg)
 {
@@ -70,79 +74,38 @@ static void lvgl_task(void *arg)
 void gauge_task(void *arg)
 {
     GaugePacket pkt;
-    memset(&pkt, 0, sizeof(pkt));
-    bool was_stale = true;
+    // ... (previous initializations) ...
 
-    int32_t last_coolant = -1;
-    int32_t last_oil_pressure = -1;
-    int32_t last_fuel_level = -1;
-
-    static float coolant_display = 0.0f;
-    static float oil_pressure_display = 0.0f;
-    static float fuel_level_display = 0.0f;
-
-    // Because guage_task starts before the UI is fully initialized, we wait here until the UI signals it's ready for updates.
-    // This prevents us from trying to update LVGL objects that haven't been created yet.
-    ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
-             ui_ready, lvgl_started, &ui_ready, &lvgl_started);
-    while (!ui_ready || !lvgl_started)
-    {
-        ESP_LOGI("GAUGE", "wait: ui_ready=%d lvgl_started=%d &ui_ready=%p &lvgl_started=%p",
-                 ui_ready, lvgl_started, &ui_ready, &lvgl_started);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
+    static float coolant_lerp = 0.0f;
+    static float oil_lerp = 0.0f;
+    static float fuel_lerp = 0.0f;
 
     while (1)
     {
-        bool is_stale = gauge_state_is_stale(2000);
-        if (is_stale != was_stale) {
-            if (is_stale) ESP_LOGW(TAG, "ESP-NOW Link LOST");
-            else ESP_LOGI(TAG, "ESP-NOW Link RESTORED");
-            was_stale = is_stale;
-        }
-
-        gauge_state_get(&pkt);
-        lvgl_lock();
-
-        if (pkt.coolantTemp != last_coolant)
+        // If the WiFi state is ESP_NOW_ONLY, we are in Telemetry mode.
+        // If it is CONNECTED, we are likely in OTA mode.
+        if (get_wifi_state() == APP_WIFI_STATE_ESP_NOW_ONLY)
         {
-            ESP_LOGI(TAG, "lastCoolant: %d, currentCoolant: %d", last_coolant, pkt.coolantTemp);
+            gauge_state_get(&pkt);
 
-            coolant_display = coolant_display * 0.85f + pkt.coolantTemp * 0.15f;
+            // Calculate LERP (Smoothing)
+            coolant_lerp = lerp(coolant_lerp, (float)pkt.coolantTemp, 0.15f);
+            oil_lerp = lerp(oil_lerp, (float)pkt.oilPressure, 0.15f);
+            fuel_lerp = lerp(fuel_lerp, (float)pkt.fuelLevel, 0.15f);
 
-            meter_anim_cb(objects.coolant_temp,
-                          screen_main_state.coolant_temp,
-                          (int)coolant_display);
-
-            last_coolant = pkt.coolantTemp;
+            lvgl_lock();
+            // Update functions now handle conditional logic internally
+            update_coolant_meter((int32_t)coolant_lerp);
+            update_oil_pressure_meter((int32_t)oil_lerp);
+            update_fuel_arc((int32_t)fuel_lerp);
+            lvgl_unlock();
+            vTaskDelay(pdMS_TO_TICKS(16));
         }
-
-        if (pkt.oilPressure != last_oil_pressure)
+        else
         {
-            ESP_LOGI(TAG, "lastOilPressure: %d, currentOilPressure: %d", last_oil_pressure, pkt.oilPressure);
-
-            oil_pressure_display = oil_pressure_display * 0.85f + pkt.oilPressure * 0.15f;
-
-            meter_anim_cb(objects.oil_pressure,
-                          screen_main_state.oil_pressure,
-                          (int)oil_pressure_display);
-
-            last_oil_pressure = pkt.oilPressure;
+            // We are in OTA mode (or transitioning), pause telemetry to save resources.
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
-
-        if (pkt.fuelLevel != last_fuel_level)
-        {
-            ESP_LOGI(TAG, "lastfuel_level: %d, currentfuel_level: %d", last_fuel_level, pkt.fuelLevel);
-
-            fuel_level_display = fuel_level_display * 0.85f + pkt.fuelLevel * 0.15f;
-
-            arc_anim_cb(objects.fuel_level, (int)fuel_level_display);
-
-            last_fuel_level = pkt.fuelLevel;
-        }
-        lvgl_unlock();
-
-        vTaskDelay(pdMS_TO_TICKS(16));
     }
 }
 
@@ -150,7 +113,8 @@ void monitor_task(void *arg)
 {
     const esp_partition_t *running = esp_ota_get_running_partition();
 
-    while (1) {
+    while (1)
+    {
         char ip_addr_str[16] = "N/A";
         get_wifi_ip_str(ip_addr_str, sizeof(ip_addr_str));
 
@@ -161,35 +125,35 @@ void monitor_task(void *arg)
     }
 }
 
-void Driver_Loop(void *parameter)
-{
-    while (1)
-    {
-        QMI8658_Loop();
-        PCF85063_Loop();
-        BAT_Get_Volts();
-        PWR_Loop();
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
+// void Driver_Loop(void *parameter)
+// {
+//     while (1)
+//     {
+//         // QMI8658_Loop();
+//         // PCF85063_Loop();
+//         // BAT_Get_Volts();
+//         // PWR_Loop();
+//         vTaskDelay(pdMS_TO_TICKS(100));
+//     }
+// }
 
 void Driver_Init(void)
 {
-    PWR_Init();
-    BAT_Init();
+    // PWR_Init();
+    // BAT_Init();
     I2C_Init();
     EXIO_Init();
-    PCF85063_Init();
-    QMI8658_Init();
+    // PCF85063_Init();
+    // QMI8658_Init();
 
-    xTaskCreatePinnedToCore(
-        Driver_Loop,
-        "Driver Loop",
-        4096,
-        NULL,
-        3,
-        NULL,
-        0);
+    // xTaskCreatePinnedToCore(
+    //     Driver_Loop,
+    //     "Driver Loop",
+    //     4096,
+    //     NULL,
+    //     3,
+    //     NULL,
+    //     0);
 }
 
 void app_main(void)
@@ -219,10 +183,18 @@ void app_main(void)
     init_wifi_state_machine();
 
     Driver_Init();
+
     LCD_Init();
     Set_Backlight(100);
 
     LVGL_Init();
+
+    // Bind the hardware instantiation handle to the active LVGL driver mapping
+    if (disp != NULL && disp->driver != NULL)
+    {
+        disp->driver->user_data = panel_handle;
+    }
+
     lvgl_lock_init();
 
     xTaskCreatePinnedToCore(

@@ -498,7 +498,7 @@
                       "type": "NEEDLE_LINE",
                       "width": 5,
                       "color": "#FF7A00",
-                      "radiusModifier": -55,
+                      "radiusModifier": -23,
                       "value": 0,
                       "valueType": "literal"
                     }
@@ -600,7 +600,7 @@
                       "type": "NEEDLE_LINE",
                       "width": 5,
                       "color": "#FF7A00",
-                      "radiusModifier": -55,
+                      "radiusModifier": -23,
                       "value": 0,
                       "valueType": "literal"
                     }

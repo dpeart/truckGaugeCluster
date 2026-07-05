@@ -9,4 +9,4 @@ set(EXTRA_COMPONENT_DIRS
 add_compile_options(-Wno-format)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(bigGauge)
+project(mainGauge)

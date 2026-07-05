@@ -36,6 +36,10 @@
 static const char *TAG = "MAIN";
 #define ONBOARD_LED_GPIO  2
 
+// These are the actual definitions
+volatile bool ui_ready = false;
+volatile bool lvgl_started = false;
+
 static void lvgl_task(void *arg)
 {
     static bool first = true;
@@ -73,53 +77,65 @@ void gauge_task(void *arg)
     static char last_time_str[10] = "";
     bool was_stale = true;
 
+    // Wait until UI is ready
     while (!ui_ready || !lvgl_started)
         vTaskDelay(pdMS_TO_TICKS(10));
 
     while (1)
     {
-        bool is_stale = gauge_state_is_stale(2000);
-        if (is_stale != was_stale) {
-            if (is_stale) ESP_LOGW(TAG, "ESP-NOW Link LOST");
-            else ESP_LOGI(TAG, "ESP-NOW Link RESTORED");
-            was_stale = is_stale;
-        }
-
-        gauge_state_get(&pkt);
-        lvgl_lock();
-
-        if (pkt.ambientTemp != last_ambientTemp)
+        // Add the OTA-Mode Gate to prioritize network stack stability
+        if (get_wifi_state() == APP_WIFI_STATE_ESP_NOW_ONLY)
         {
-            char temp_buf[12];
-            snprintf(temp_buf, sizeof(temp_buf), "%d", pkt.ambientTemp);
-            text_update_cb(objects.ambient_temp, temp_buf);
-            last_ambientTemp = pkt.ambientTemp;
-        }
+            bool is_stale = gauge_state_is_stale(2000);
+            if (is_stale != was_stale) {
+                if (is_stale) ESP_LOGW(TAG, "ESP-NOW Link LOST");
+                else ESP_LOGI(TAG, "ESP-NOW Link RESTORED");
+                was_stale = is_stale;
+            }
 
-        if (strcmp(pkt.compass8, last_compass_str) != 0)
+            gauge_state_get(&pkt);
+            lvgl_lock();
+
+            // Ambient Temp Update
+            if (pkt.ambientTemp != last_ambientTemp)
+            {
+                char temp_buf[12];
+                snprintf(temp_buf, sizeof(temp_buf), "%d", pkt.ambientTemp);
+                text_update_cb(objects.ambient_temp, temp_buf);
+                last_ambientTemp = pkt.ambientTemp;
+            }
+
+            // Heading/Compass Update
+            if (strcmp(pkt.compass8, last_compass_str) != 0)
+            {
+                char comp_buf[8];
+                snprintf(comp_buf, sizeof(comp_buf), "%s", pkt.compass8);
+                text_update_cb(objects.heading, comp_buf);
+                strncpy(last_compass_str, pkt.compass8, sizeof(last_compass_str) - 1);
+            }
+
+            // Time Update
+            char current_time_str[10];
+            int display_hour = pkt.hour % 12;
+            if (display_hour == 0) display_hour = 12;
+            snprintf(current_time_str, sizeof(current_time_str), "%d:%02d", display_hour, pkt.minute);
+
+            if (strcmp(current_time_str, last_time_str) != 0)
+            {
+                text_update_cb(objects.time, current_time_str);
+                strcpy(last_time_str, current_time_str);
+            }
+
+            updateIndicators(&pkt);
+            lvgl_unlock();
+
+            vTaskDelay(pdMS_TO_TICKS(16));
+        }
+        else
         {
-            ESP_LOGI(TAG, "Compass changed %s → %s", last_compass_str, pkt.compass8);
-            char comp_buf[8];
-            snprintf(comp_buf, sizeof(comp_buf), "%s", pkt.compass8);
-            text_update_cb(objects.heading, comp_buf);
-            strncpy(last_compass_str, pkt.compass8, sizeof(last_compass_str) - 1);
+            // OTA mode active: yield CPU to network stack
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
-
-        char current_time_str[10];
-        int display_hour = pkt.hour % 12;
-        if (display_hour == 0) display_hour = 12;
-        snprintf(current_time_str, sizeof(current_time_str), "%d:%02d", display_hour, pkt.minute);
-
-        if (strcmp(current_time_str, last_time_str) != 0)
-        {
-            text_update_cb(objects.time, current_time_str);
-            strcpy(last_time_str, current_time_str);
-        }
-
-        updateIndicators(&pkt);
-
-        lvgl_unlock();
-        vTaskDelay(pdMS_TO_TICKS(16));
     }
 }
 
@@ -138,35 +154,35 @@ void monitor_task(void *arg)
     }
 }
 
-void Driver_Loop(void *parameter)
-{
-    while (1)
-    {
-        QMI8658_Loop();
-        PCF85063_Loop();
-        BAT_Get_Volts();
-        PWR_Loop();
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
+// void Driver_Loop(void *parameter)
+// {
+//     while (1)
+//     {
+//         QMI8658_Loop();
+//         PCF85063_Loop();
+//         BAT_Get_Volts();
+//         PWR_Loop();
+//         vTaskDelay(pdMS_TO_TICKS(100));
+//     }
+// }
 
 void Driver_Init(void)
 {
-    PWR_Init();
-    BAT_Init();
+    // PWR_Init();
+    // BAT_Init();
     I2C_Init();
     EXIO_Init();
-    PCF85063_Init();
-    QMI8658_Init();
+    // PCF85063_Init();
+    // QMI8658_Init();
 
-    xTaskCreatePinnedToCore(
-        Driver_Loop,
-        "Driver Loop",
-        4096,
-        NULL,
-        3,
-        NULL,
-        0);
+    // xTaskCreatePinnedToCore(
+    //     Driver_Loop,
+    //     "Driver Loop",
+    //     4096,
+    //     NULL,
+    //     3,
+    //     NULL,
+    //     0);
 }
 
 void app_main(void)

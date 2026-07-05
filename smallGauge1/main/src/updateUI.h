@@ -1,32 +1,19 @@
-#ifndef UPDATE_SPEED_H
-#define UPDATE_SPEED_H
+#ifndef UPDATE_UI_H
+#define UPDATE_UI_H
 
-#include <stdint.h>
 #include "lvgl.h"
-#include "src/ui/screens.h" // Access to 'objects' and UI pointers
-#include "GaugePacket.h"
-#include <stdbool.h>
+#include "screens.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
+// Threshold to trigger an update (prevents jitter)
+#define UPDATE_THRESHOLD 1
 
-    /**
-     * @brief Animates the 'speed' meter needle smoothly.
-     * @param target_speed The new speed value to animate to.
-     */
-    // void update_coolant_ui(int32_t current_speed, int32_t target_speed);
-    // void update_oil_pressure_ui(int32_t current_rpm, int32_t target_rpm);
-
-    extern volatile bool ui_ready;
-    extern volatile bool lvgl_started;
-    
-    void meter_anim_cb(lv_obj_t *meter, lv_meter_indicator_t *ind, int32_t val);
-    void arc_anim_cb(lv_obj_t *arc, int32_t val);
-
-#ifdef __cplusplus
+// LERP function
+static inline float lerp(float current, float target, float factor) {
+    return current + factor * (target - current);
 }
-#endif
+
+void update_coolant_meter(int32_t new_val);
+void update_oil_pressure_meter(int32_t new_val);
+void update_fuel_arc(int32_t new_val);
 
 #endif

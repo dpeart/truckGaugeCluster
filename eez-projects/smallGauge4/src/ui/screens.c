@@ -88,7 +88,7 @@ void create_screen_main() {
                     lv_meter_set_indicator_end_value(obj, indicator, 300);
                 }
                 {
-                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -55);
+                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -23);
                     state->oil_temp = indicator;
                     lv_meter_set_indicator_value(obj, indicator, 0);
                 }
@@ -127,7 +127,7 @@ void create_screen_main() {
                     lv_meter_set_indicator_end_value(obj, indicator, 0);
                 }
                 {
-                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -50);
+                    lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 5, lv_color_hex(0xffff7a00), -23);
                     state->boost_pressure = indicator;
                     lv_meter_set_indicator_value(obj, indicator, 0);
                 }
