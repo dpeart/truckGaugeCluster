@@ -10,6 +10,7 @@ typedef struct __attribute__((packed)) {
   // -------------------------
   int16_t speed;
   int16_t rpm;
+  uint32_t odometerTenths;
   int16_t gearPosition;
 
   int16_t batteryLevel;
@@ -63,6 +64,7 @@ inline void fillGaugePacket(
     // Vehicle data
     int16_t speed,
     int16_t rpm,
+    uint32_t odometerTenths,
     int16_t gearPosition,
     int16_t fuelLevel,
     int16_t batteryLevel,
@@ -95,9 +97,10 @@ inline void fillGaugePacket(
     // Vehicle
     pkt.speed          = speed;
     pkt.rpm            = rpm;
+    pkt.odometerTenths = odometerTenths;
     pkt.gearPosition   = gearPosition;
     pkt.fuelLevel      = fuelLevel;
-    pkt.batteryLevel      = batteryLevel;
+    pkt.batteryLevel   = batteryLevel;
 
     pkt.iaTemp         = iaTemp;
     pkt.oilTemp        = oilTemp;
@@ -145,6 +148,7 @@ static inline void printGaugePacket(const GaugePacket &pkt) {
 
     Serial.print("Speed: ");          Serial.println(pkt.speed);
     Serial.print("RPM: ");            Serial.println(pkt.rpm);
+    Serial.print("ODO: ");            Serial.println(pkt.odometerTenths);
     Serial.print("Gear: ");           Serial.println(pkt.gearPosition);
     Serial.print("FuelLevel: ");      Serial.println(pkt.fuelLevel);
     Serial.print("BatteryLevel: ");      Serial.println(pkt.batteryLevel);

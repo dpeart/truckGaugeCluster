@@ -52,6 +52,7 @@
 // Amount to multiply a float by to convert to int, will be divided in custom xml
 #define INT_SCALING 100
 
+#include <Arduino.h>
 
 extern int dig[];
 
@@ -66,9 +67,9 @@ extern unsigned int cruiseSpeedActive;
 extern unsigned int digitalPins;
 
 // Odometer
-extern int totalMiles;           // in 1/10 of a mile
-extern int odometer;             // Current odometer reading in 1/10 of a mile
-extern int accumulatedDistance;  // Accumulated distance since last odometer update in 1/10 of a mile
+extern uint32_t odometer;             // Current odometer reading mile
+extern uint32_t accumulatedDistance;  // Accumulated distance since last odometer
+extern uint32_t odometerTenths;
 
 extern const int pulsesPerRevolution;      // Number of pulses per wheel revolution
 extern const float wheelDiameterInches;  // Wheel diameter in inches (example value)

@@ -533,9 +533,9 @@
                       "width": 3,
                       "color": "#ffffff",
                       "radiusModifier": 0,
-                      "startValue": 30,
+                      "startValue": 70,
                       "startValueType": "literal",
-                      "endValue": 0,
+                      "endValue": 20,
                       "endValueType": "literal"
                     },
                     {
@@ -554,13 +554,13 @@
                   "minorTickLineWidth": 0,
                   "minorTickLength": 5,
                   "minorTickColor": "#ffffff",
-                  "nthMajor": 5,
+                  "nthMajor": 6,
                   "majorTickWidth": 3,
                   "majorTickLength": 10,
                   "majorTickColor": "#ffffff",
                   "labelGap": 20,
-                  "scaleMin": 30,
-                  "scaleMax": 0,
+                  "scaleMin": 70,
+                  "scaleMax": 20,
                   "scaleAngleRange": 90,
                   "scaleRotation": 310
                 }

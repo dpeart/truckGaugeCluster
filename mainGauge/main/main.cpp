@@ -59,7 +59,7 @@ void runLVGLTask(void *arg)
         update_tach_ui(pkt.rpm);
 
         updateIndicators(pkt);
-        incrementOdometer();
+        incrementOdometer(pkt);
 
         // 3. Render the frame pass
         lv_timer_handler();
@@ -82,7 +82,7 @@ extern "C" void app_main(void)
     // esp_log_level_set("P4_UART", ESP_LOG_INFO);
     // esp_log_level_set("P4_OTA", ESP_LOG_INFO);
     // esp_log_level_set("UI", ESP_LOG_INFO);
-    // esp_log_level_set("P4_TELEM", ESP_LOG_INFO);
+    esp_log_level_set("P4_TELEM", ESP_LOG_INFO);
     // esp_log_level_set("STATE", ESP_LOG_NONE);
     // esp_log_level_set("P4_MAIN", ESP_LOG_NONE);
 

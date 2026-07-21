@@ -20,7 +20,7 @@ extern "C"
 
     void generateTurnSignalPattern();
     void updateIndicators(const GaugePacket& pkt);
-    void incrementOdometer();
+    void incrementOdometer(const GaugePacket& pkt);
 
     void speed_anim_cb(void *var, int32_t val);
     void tach_anim_cb(void *var, int32_t val);

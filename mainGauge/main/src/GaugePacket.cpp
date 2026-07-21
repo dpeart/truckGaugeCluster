@@ -54,6 +54,7 @@ void printGaugePacket(const GaugePacket& pkt)
 
     DB_PRINTLN("Speed: %d", pkt.speed);
     DB_PRINTLN("RPM: %d", pkt.rpm);
+    DB_PRINTLN("Odometer (tenths): %u", pkt.odometerTenths);
     DB_PRINTLN("Gear: %d", pkt.gearPosition);
 
     DB_PRINTLN("IA Temp: %d", pkt.iaTemp);

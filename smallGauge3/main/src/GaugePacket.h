@@ -14,6 +14,7 @@ typedef struct __attribute__((packed)) {
   // -------------------------
   int16_t speed;
   int16_t rpm;
+  uint32_t odometerTenths;
   int16_t gearPosition;
 
   int16_t batteryLevel;

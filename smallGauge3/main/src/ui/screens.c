@@ -113,13 +113,13 @@ void create_screen_main() {
                 lv_meter_scale_t *scale = lv_meter_add_scale(obj);
                 state->scale1 = scale;
                 lv_meter_set_scale_ticks(obj, scale, 31, 0, 5, lv_color_hex(0xffffffff));
-                lv_meter_set_scale_major_ticks(obj, scale, 5, 3, 10, lv_color_hex(0xffffffff), 20);
-                lv_meter_set_scale_range(obj, scale, 30, 0, 90, 310);
+                lv_meter_set_scale_major_ticks(obj, scale, 6, 3, 10, lv_color_hex(0xffffffff), 20);
+                lv_meter_set_scale_range(obj, scale, 70, 20, 90, 310);
                 {
                     lv_meter_indicator_t *indicator = lv_meter_add_arc(obj, scale, 3, lv_color_hex(0xffffffff), 0);
                     state->indicator1 = indicator;
-                    lv_meter_set_indicator_start_value(obj, indicator, 30);
-                    lv_meter_set_indicator_end_value(obj, indicator, 0);
+                    lv_meter_set_indicator_start_value(obj, indicator, 70);
+                    lv_meter_set_indicator_end_value(obj, indicator, 20);
                 }
                 {
                     lv_meter_indicator_t *indicator = lv_meter_add_needle_line(obj, scale, 4, lv_color_hex(0xffff7a00), -23);
