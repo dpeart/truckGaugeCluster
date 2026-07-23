@@ -48,8 +48,14 @@ struct __attribute__((packed)) GaugePacket
     uint8_t second;
 
     // GNSS heading + direction
-    int16_t headingDeg; // scaled degrees (0–35999 = 0–359.99)
-    char compass8[4];   // "N", "NE", "SW", etc.
+    int16_t headingDeg;   // scaled degrees (0–35999 = 0–359.99)
+    char compass8[4];     // "N", "NE", "SW", etc.
+    int32_t gpsLat;       // degrees * 1e7
+    int32_t gpsLon;       // degrees * 1e7
+    uint32_t gpsSpeed;    // mm/s
+    uint16_t gpsAltitude; // meters
+    uint8_t gpsFix;       // 0=no fix, 2=2D, 3=3D
+    uint8_t gpsSatCount;  // satellites used
 };
 
 // ------------------------------------------------------------

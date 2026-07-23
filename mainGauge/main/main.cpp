@@ -14,6 +14,8 @@
 #include "src/ui/ui.h"
 #include "src/updateSpeed.h"
 #include "src/GaugePacket.h"
+#include "src/StatsModule.h"   // added for stats UI
+
 // #include "src/espnow_receiver.h"
 // #include "src/espnow_task.h"
 
@@ -25,6 +27,9 @@
 static const char *TAG = "P4_MAIN";
 
 static SlaveBootHandler g_boot;
+
+// single StatsModule instance (UI thread / LVGL timer will use this)
+StatsModule stats;
 
 // ------------------------------------------------------------
 // LVGL Task (Core 1)
@@ -38,6 +43,30 @@ void lvgl_tick_task(void *arg)
         vTaskDelay(1);  // sleep 1 ms
     }
 }
+
+// // Stats timer callback runs on the LVGL thread. It only updates when in STATS mode.
+// static void stats_timer_cb(lv_timer_t *timer)
+// {
+//     // Only run when UI is in STATS mode
+//     if (current_mode != p4_mode_t::STATS) return;
+
+//     GaugePacket pkt{};
+//     gauge_state_get(pkt); // quick copy from shared state
+
+//     // speed: use existing pkt.speed (assumed mph)
+//     float speed_mph = static_cast<float>(pkt.speed);
+
+//     // distance: odometerTenths -> meters
+//     float distance_meters = static_cast<float>(pkt.odometerTenths) * 0.1f * 1609.344f;
+
+//     // simple EMA smoothing to reduce jitter
+//     static float smoothed_speed = 0.0f;
+//     const float alpha = 0.25f;
+//     smoothed_speed = alpha * speed_mph + (1.0f - alpha) * smoothed_speed;
+
+//     // update stats UI (safe on LVGL thread)
+//     stats.lvglUpdateCharts();
+// }
 
 void runLVGLTask(void *arg)
 {
@@ -81,8 +110,9 @@ extern "C" void app_main(void)
     // esp_log_level_set("updateSpeed", ESP_LOG_INFO);
     // esp_log_level_set("P4_UART", ESP_LOG_INFO);
     // esp_log_level_set("P4_OTA", ESP_LOG_INFO);
-    // esp_log_level_set("UI", ESP_LOG_INFO);
-    esp_log_level_set("P4_TELEM", ESP_LOG_INFO);
+    esp_log_level_set("UI", ESP_LOG_INFO);
+    esp_log_level_set("StatsModule", ESP_LOG_INFO);
+    // esp_log_level_set("P4_TELEM", ESP_LOG_INFO);
     // esp_log_level_set("STATE", ESP_LOG_NONE);
     // esp_log_level_set("P4_MAIN", ESP_LOG_NONE);
 
@@ -198,6 +228,10 @@ extern "C" void app_main(void)
     ui_init();
     ui_tick();
     bsp_display_unlock();
+
+    // Create LVGL timer for stats updates (runs on LVGL thread)
+    // Timer callback will only act when current_mode == STATS
+    // lv_timer_create(stats_timer_cb, 100 /* ms */, NULL); // 10 Hz
 
     // ---------------------------------------------------------
     // 7. LVGL tick + render tasks (Core 1)

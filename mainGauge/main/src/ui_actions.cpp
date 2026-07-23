@@ -4,66 +4,157 @@
 #include "actions.h"
 #include "screens.h"
 #include "p4_modes.h"
+#include "StatsModule.h"
+
+extern StatsModule stats;
 
 #include "esp_system.h"
 #include "nvs_flash.h"
 #include "esp_partition.h"
 #include "esp_ota_ops.h"
 #include "esp_err.h"
+#include "esp_timer.h"
 
 static const char *TAG_UI = "UI";
+static uint32_t settings_entered_ms = 0;
 
-//
 // ------------------------------------------------------------
-// Screen switching (long press)
+// Circular Screen Navigation Array
+// Order: Main (0) <---> Stats (1) <---> Settings (2)
 // ------------------------------------------------------------
-//
+static lv_obj_t **screen_list[] = {
+    &objects.main,
+    &objects.stats_screen,
+    &objects.settings};
 
-void action_switch_screen(lv_event_t *e)
+static const int NUM_SCREENS = sizeof(screen_list) / sizeof(screen_list[0]);
+
+// Helper: Determine index of currently active screen
+static int get_current_screen_index()
 {
-    ESP_LOGW(TAG_UI, "LONG PRESS EVENT FIRED!");
-
-    int id = (int)lv_event_get_user_data(e);
-    ESP_LOGI(TAG_UI, "User data = %d", id);
-
-    // Leaving settings screen?
-    if (id == 1) // going to MAIN screen
+    lv_obj_t *act_scr = lv_scr_act();
+    for (int i = 0; i < NUM_SCREENS; ++i)
     {
-        if ((current_mode == p4_mode_t::C6_OTA ||
-             current_mode == p4_mode_t::P4_OTA))
+        if (screen_list[i] != nullptr && *screen_list[i] == act_scr)
+        {
+            return i;
+        }
+    }
+    return 0; // Default to main if unknown
+}
+
+// Helper: Centralized screen switching with mode enter/exit hooks
+static void load_screen_by_index(int target_index, bool is_next = true)
+{
+    // Circular bounds check
+    if (target_index < 0)
+    {
+        target_index = NUM_SCREENS - 1;
+    }
+    else if (target_index >= NUM_SCREENS)
+    {
+        target_index = 0;
+    }
+
+    lv_obj_t *current_scr = lv_scr_act();
+    lv_obj_t *target_scr = *screen_list[target_index];
+
+    if (current_scr == target_scr || target_scr == nullptr)
+    {
+        return;
+    }
+
+    //
+    // --- LEAVING CURRENT SCREEN HOOKS ---
+    //
+    if (current_scr == objects.stats_screen)
+    {
+        ESP_LOGI(TAG_UI, "Leaving STATS screen -> stopping stats module");
+        stats.stop(); // Resets stats state to IDLE & deletes timer
+    }
+    else if (current_scr == objects.settings)
+    {
+        if ((current_mode == p4_mode_t::C6_OTA || current_mode == p4_mode_t::P4_OTA))
         {
             if (!ota_upload_in_progress)
             {
-                ESP_LOGW(TAG_UI, "Leaving settings — OTA idle, canceling");
+                ESP_LOGW(TAG_UI, "Leaving settings — OTA idle, canceling OTA mode");
                 send_mode_telemetry();
-            }
-            else
-            {
-                ESP_LOGW(TAG_UI, "Leaving settings — OTA upload active, cancel blocked");
             }
         }
     }
 
-    switch (id)
+    //
+    // --- ENTERING TARGET SCREEN HOOKS ---
+    //
+    if (target_scr == objects.stats_screen)
     {
-    case 1:
-        ESP_LOGI(TAG_UI, "Switching to MAIN screen");
-        lv_scr_load(objects.main);
-        break;
+        ESP_LOGI(TAG_UI, "Entering STATS screen -> initializing LVGL line buffers");
+        // Maintain TELEMETRY system mode so C6 continues streaming GaugePacket updates
+        p4_set_mode(p4_mode_t::TELEMETRY);
+        stats.lvglInit();
+    }
 
-    case 0:
-        ESP_LOGI(TAG_UI, "Switching to settings screen");
-        lv_scr_load(objects.settings);
-        break;
+    ESP_LOGI(TAG_UI, "Loading screen index: %d", target_index);
+
+    // Pick animation type based on swipe direction:
+    // Next screen     -> LV_SCR_LOAD_ANIM_MOVE_LEFT  (Slides in from right)
+    // Previous screen -> LV_SCR_LOAD_ANIM_MOVE_RIGHT (Slides in from left)
+    lv_scr_load_anim_t anim = is_next ? LV_SCR_LOAD_ANIM_MOVE_LEFT
+                                      : LV_SCR_LOAD_ANIM_MOVE_RIGHT;
+
+    // Parameters: (target_scr, anim_type, time_ms, delay_ms, auto_del)
+    // MUST keep auto_del = false so EEZ Studio screen objects remain in memory!
+    lv_scr_load_anim(target_scr, anim, 300, 0, false);
+}
+
+// ------------------------------------------------------------
+// Swipe Gesture Handler (Called automatically by EEZ Studio)
+// ------------------------------------------------------------
+
+void action_swipe_screen(lv_event_t *e)
+{
+    // Debounce to prevent rapid double-screen skipping
+    static uint32_t last_swipe_ms = 0;
+    uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+
+    // Keep debounce time slightly longer than animation speed (400ms vs 300ms anim)
+    if (now_ms - last_swipe_ms < 400)
+    {
+        return;
+    }
+
+    lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_get_act());
+    int current_idx = get_current_screen_index();
+
+    // Swipe LEFT (finger moves right to left) -> Go Forward / Next Screen
+    if (dir == LV_DIR_LEFT)
+    {
+        last_swipe_ms = now_ms;
+        ESP_LOGI(TAG_UI, "Swipe LEFT → Moving to NEXT screen");
+        load_screen_by_index(current_idx + 1, true /* is_next */);
+    }
+    // Swipe RIGHT (finger moves left to right) -> Go Backward / Previous Screen
+    else if (dir == LV_DIR_RIGHT)
+    {
+        last_swipe_ms = now_ms;
+        ESP_LOGI(TAG_UI, "Swipe RIGHT → Moving to PREVIOUS screen");
+        load_screen_by_index(current_idx - 1, false /* is_next */);
     }
 }
 
-//
+// ------------------------------------------------------------
+// Long Press Handler (Disabled / Empty to prevent conflicts)
+// ------------------------------------------------------------
+void action_switch_screen(lv_event_t *e)
+{
+    // Left empty on purpose so long-press events generated by screens.c do nothing.
+    (void)e;
+}
+
 // ------------------------------------------------------------
 // Button actions
 // ------------------------------------------------------------
-//
-
 void action_button_pressed(lv_event_t *e)
 {
     int id = (int)lv_event_get_user_data(e);
@@ -72,14 +163,18 @@ void action_button_pressed(lv_event_t *e)
 
     switch (id)
     {
-    //
-    // -------------------------
-    // P4 BUTTONS
-    // -------------------------
-    //
     case 0: // P4 OTA toggle
-        ESP_LOGI(TAG_UI, "P4 OTA pressed");
+    {
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
 
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+            break;
+        }
+
+        ESP_LOGI(TAG_UI, "P4 OTA pressed");
         if (current_mode == p4_mode_t::P4_OTA)
         {
             if (!ota_upload_in_progress)
@@ -99,16 +194,36 @@ void action_button_pressed(lv_event_t *e)
             send_mode_p4_ota();
         }
         break;
+    }
 
     case 1: // P4 Reboot
+    {
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+            break;
+        }
+
         ESP_LOGI(TAG_UI, "P4 Reboot pressed");
         esp_restart();
         break;
+    }
 
     case 2: // P4 Reset
     {
-        ESP_LOGI(TAG_UI, "P4 Reset pressed");
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
 
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+            break;
+        }
+
+        ESP_LOGI(TAG_UI, "P4 Reset pressed");
         ESP_ERROR_CHECK(nvs_flash_erase());
         ESP_ERROR_CHECK(nvs_flash_init());
 
@@ -131,14 +246,18 @@ void action_button_pressed(lv_event_t *e)
         break;
     }
 
-    //
-    // -------------------------
-    // C6 BUTTONS
-    // -------------------------
-    //
     case 10: // C6 OTA toggle
-        ESP_LOGI(TAG_UI, "C6 OTA pressed");
+    {
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
 
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+            break;
+        }
+
+        ESP_LOGI(TAG_UI, "C6 OTA pressed");
         if (current_mode == p4_mode_t::C6_OTA)
         {
             if (!ota_upload_in_progress)
@@ -155,19 +274,77 @@ void action_button_pressed(lv_event_t *e)
         }
         else
         {
+            uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+
+            // Guard against accidental ghost clicks from swiping onto the screen
+            if (now_ms - settings_entered_ms < 500)
+            {
+                ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+                break;
+            }
             send_mode_c6_ota();
         }
         break;
+    }
 
     case 11: // C6 Reboot
+    {
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+            break;
+        }
+
         ESP_LOGI(TAG_UI, "C6 Reboot pressed");
         send_mode_reboot();
         break;
+    }
 
     case 12: // C6 Reset
+    {
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring reset click: within 500ms screen activation grace period");
+            break;
+        }
+
         ESP_LOGI(TAG_UI, "C6 Reset pressed");
         send_mode_factory_reset();
         break;
+    }
+
+    case 100: // Stats START button
+    {
+        uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
+
+        // Guard against accidental ghost clicks from swiping onto the screen
+        if (now_ms - settings_entered_ms < 500)
+        {
+            ESP_LOGW(TAG_UI, "Ignoring stats start click: within 500ms screen activation grace period");
+            break;
+        }
+
+        ESP_LOGI(TAG_UI, "Stats START pressed");
+        if (objects.stats_screen == nullptr)
+        {
+            ESP_LOGW(TAG_UI, "Stats START: stats_screen object missing");
+            break;
+        }
+
+        // Keep system mode in TELEMETRY so telemetry packet processing stays active
+        p4_set_mode(p4_mode_t::TELEMETRY);
+
+        // Prepare line buffers & arm state machine (ARMED)
+        stats.lvglInit();
+        stats.start();
+        break;
+    }
 
     default:
         ESP_LOGW(TAG_UI, "Unknown button ID: %d", id);

@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <string.h>
-#include <math.h>   // for NAN, isnan
+#include <math.h>  // for NAN, isnan
 
 typedef struct __attribute__((packed)) {
 
@@ -39,19 +39,24 @@ typedef struct __attribute__((packed)) {
   // GNSS date/time (local)
   // -------------------------
   uint16_t year;
-  uint8_t  month;
-  uint8_t  day;
+  uint8_t month;
+  uint8_t day;
 
-  uint8_t  hour;
-  uint8_t  minute;
-  uint8_t  second;
+  uint8_t hour;
+  uint8_t minute;
+  uint8_t second;
 
   // -------------------------
   // GNSS heading + direction
   // -------------------------
-  int16_t headingDeg;     // scaled degrees (0–35999 = 0–359.99)
-  char    compass8[4];    // "N", "NE", "SW", "UNK", etc.
-
+  int16_t headingDeg;  // scaled degrees (0–35999 = 0–359.99)
+  char compass8[4];    // "N", "NE", "SW", "UNK", etc.
+  int32_t gpsLat;
+  int32_t gpsLon;                                 // degrees * 1e7
+  uint32_t gpsSpeed;                              // mm/s
+  uint16_t gpsAltitude;                           // meters
+  uint8_t gpsFix;                                 // 0=no fix, 2=2D, 3=3D
+  uint8_t gpsSatCount;                            // satellites used
 } GaugePacket;
 
 
@@ -59,130 +64,166 @@ typedef struct __attribute__((packed)) {
 // fillGaugePacket()
 // ------------------------------------------------------------
 inline void fillGaugePacket(
-    GaugePacket &pkt,
+  GaugePacket &pkt,
 
-    // Vehicle data
-    int16_t speed,
-    int16_t rpm,
-    uint32_t odometerTenths,
-    int16_t gearPosition,
-    int16_t fuelLevel,
-    int16_t batteryLevel,
-    int16_t iaTemp,
-    int16_t oilTemp,
-    int16_t coolantTemp,
-    int16_t transTemp,
-    int16_t ambientTemp,
-    int16_t EGTemp,
-    int16_t oilPressure,
-    int16_t fuelPressure,
-    int16_t boostPressure,
-    int16_t accelerationX,
-    int16_t accelerationY,
-    int16_t accelerationZ,
-    uint16_t digitalPins,
-    uint16_t cruiseActive = 0,
-    uint16_t cruiseSetValue = 0,
+  // Vehicle data
+  int16_t speed,
+  int16_t rpm,
+  uint32_t odometerTenths,
+  int16_t gearPosition,
+  int16_t fuelLevel,
+  int16_t batteryLevel,
+  int16_t iaTemp,
+  int16_t oilTemp,
+  int16_t coolantTemp,
+  int16_t transTemp,
+  int16_t ambientTemp,
+  int16_t EGTemp,
+  int16_t oilPressure,
+  int16_t fuelPressure,
+  int16_t boostPressure,
+  int16_t accelerationX,
+  int16_t accelerationY,
+  int16_t accelerationZ,
+  uint16_t digitalPins,
+  uint16_t cruiseActive = 0,
+  uint16_t cruiseSetValue = 0,
 
-    // GNSS data (optional)
-    int16_t year = -1,
-    int8_t  month = -1,
-    int8_t  day = -1,
-    int8_t  hour = -1,
-    int8_t  minute = -1,
-    int8_t  second = -1,
-    float   headingDeg = NAN,
-    const char *compass8 = nullptr
+  // GNSS data (optional)
+  int16_t year = -1,
+  int8_t month = -1,
+  int8_t day = -1,
+  int8_t hour = -1,
+  int8_t minute = -1,
+  int8_t second = -1,
+  float headingDeg = NAN,
+  const char *compass8 = nullptr,
+
+  // GPS position/speed
+  int32_t gpsLat = 0,
+  int32_t gpsLon = 0,              
+  uint32_t gpsSpeed = 0,
+  uint16_t gpsAltitude = 0,
+  uint8_t gpsFix = 0,
+  uint8_t gpsSatCount = 0
 ) {
-    // Vehicle
-    pkt.speed          = speed;
-    pkt.rpm            = rpm;
-    pkt.odometerTenths = odometerTenths;
-    pkt.gearPosition   = gearPosition;
-    pkt.fuelLevel      = fuelLevel;
-    pkt.batteryLevel   = batteryLevel;
+  // Vehicle
+  pkt.speed = speed;
+  pkt.rpm = rpm;
+  pkt.odometerTenths = odometerTenths;
+  pkt.gearPosition = gearPosition;
+  pkt.fuelLevel = fuelLevel;
+  pkt.batteryLevel = batteryLevel;
 
-    pkt.iaTemp         = iaTemp;
-    pkt.oilTemp        = oilTemp;
-    pkt.coolantTemp    = coolantTemp;
-    pkt.transTemp      = transTemp;
-    pkt.ambientTemp    = ambientTemp;
-    pkt.EGTemp         = EGTemp;
+  pkt.iaTemp = iaTemp;
+  pkt.oilTemp = oilTemp;
+  pkt.coolantTemp = coolantTemp;
+  pkt.transTemp = transTemp;
+  pkt.ambientTemp = ambientTemp;
+  pkt.EGTemp = EGTemp;
 
-    pkt.oilPressure    = oilPressure;
-    pkt.fuelPressure   = fuelPressure;
-    pkt.boostPressure  = boostPressure;
+  pkt.oilPressure = oilPressure;
+  pkt.fuelPressure = fuelPressure;
+  pkt.boostPressure = boostPressure;
 
-    pkt.accelerationX  = accelerationX;
-    pkt.accelerationY  = accelerationY;
-    pkt.accelerationZ  = accelerationZ;
+  pkt.accelerationX = accelerationX;
+  pkt.accelerationY = accelerationY;
+  pkt.accelerationZ = accelerationZ;
 
-    pkt.digitalPins    = digitalPins;
+  pkt.digitalPins = digitalPins;
 
-    pkt.cruiseActive   = cruiseActive;
-    pkt.cruiseSetValue = cruiseSetValue;
+  pkt.cruiseActive = cruiseActive;
+  pkt.cruiseSetValue = cruiseSetValue;
 
-    // GNSS — only overwrite if provided
-    if (year   >= 0) pkt.year   = (uint16_t)year;
-    if (month  >= 0) pkt.month  = (uint8_t)month;
-    if (day    >= 0) pkt.day    = (uint8_t)day;
+  // GNSS — only overwrite if provided
+  if (year >= 0) pkt.year = (uint16_t)year;
+  if (month >= 0) pkt.month = (uint8_t)month;
+  if (day >= 0) pkt.day = (uint8_t)day;
 
-    if (hour   >= 0) pkt.hour   = (uint8_t)hour;
-    if (minute >= 0) pkt.minute = (uint8_t)minute;
-    if (second >= 0) pkt.second = (uint8_t)second;
+  if (hour >= 0) pkt.hour = (uint8_t)hour;
+  if (minute >= 0) pkt.minute = (uint8_t)minute;
+  if (second >= 0) pkt.second = (uint8_t)second;
 
-    if (!isnan(headingDeg))
-        pkt.headingDeg = (int16_t)(headingDeg * 100.0f);
+  if (!isnan(headingDeg))
+    pkt.headingDeg = (int16_t)(headingDeg * 100.0f);
 
-    if (compass8 != nullptr) {
-        strncpy(pkt.compass8, compass8, sizeof(pkt.compass8));
-        pkt.compass8[sizeof(pkt.compass8)-1] = '\0';
-    }
+  if (compass8 != nullptr) {
+    strncpy(pkt.compass8, compass8, sizeof(pkt.compass8));
+    pkt.compass8[sizeof(pkt.compass8) - 1] = '\0';
+  }
+  // Store GPS lat/lon (scaled)
+pkt.gpsLat      = gpsLat;
+pkt.gpsLon      = gpsLon;
+pkt.gpsSpeed    = gpsSpeed;
+pkt.gpsAltitude = gpsAltitude;
+pkt.gpsFix      = gpsFix;
+pkt.gpsSatCount = gpsSatCount;
 }
 
 // ------------------------------------------------------------
 // printGaugePacket()
 // ------------------------------------------------------------
 static inline void printGaugePacket(const GaugePacket &pkt) {
-    Serial.println("----- GaugePacket -----");
+  Serial.println("----- GaugePacket -----");
 
-    Serial.print("Speed: ");          Serial.println(pkt.speed);
-    Serial.print("RPM: ");            Serial.println(pkt.rpm);
-    Serial.print("ODO: ");            Serial.println(pkt.odometerTenths);
-    Serial.print("Gear: ");           Serial.println(pkt.gearPosition);
-    Serial.print("FuelLevel: ");      Serial.println(pkt.fuelLevel);
-    Serial.print("BatteryLevel: ");      Serial.println(pkt.batteryLevel);
+  Serial.print("Speed: ");
+  Serial.println(pkt.speed);
+  Serial.print("RPM: ");
+  Serial.println(pkt.rpm);
+  Serial.print("ODO: ");
+  Serial.println(pkt.odometerTenths);
+  Serial.print("Gear: ");
+  Serial.println(pkt.gearPosition);
+  Serial.print("FuelLevel: ");
+  Serial.println(pkt.fuelLevel);
+  Serial.print("BatteryLevel: ");
+  Serial.println(pkt.batteryLevel);
 
-    Serial.print("IA Temp: ");        Serial.println(pkt.iaTemp);
-    Serial.print("Oil Temp: ");       Serial.println(pkt.oilTemp);
-    Serial.print("Coolant Temp: ");   Serial.println(pkt.coolantTemp);
-    Serial.print("Trans Temp: ");     Serial.println(pkt.transTemp);
-    Serial.print("Ambient Temp: ");   Serial.println(pkt.ambientTemp);
-    Serial.print("EGT: ");            Serial.println(pkt.EGTemp);
+  Serial.print("IA Temp: ");
+  Serial.println(pkt.iaTemp);
+  Serial.print("Oil Temp: ");
+  Serial.println(pkt.oilTemp);
+  Serial.print("Coolant Temp: ");
+  Serial.println(pkt.coolantTemp);
+  Serial.print("Trans Temp: ");
+  Serial.println(pkt.transTemp);
+  Serial.print("Ambient Temp: ");
+  Serial.println(pkt.ambientTemp);
+  Serial.print("EGT: ");
+  Serial.println(pkt.EGTemp);
 
-    Serial.print("Oil Pressure: ");   Serial.println(pkt.oilPressure);
-    Serial.print("Fuel Pressure: ");  Serial.println(pkt.fuelPressure);
-    Serial.print("Boost Pressure: "); Serial.println(pkt.boostPressure);
+  Serial.print("Oil Pressure: ");
+  Serial.println(pkt.oilPressure);
+  Serial.print("Fuel Pressure: ");
+  Serial.println(pkt.fuelPressure);
+  Serial.print("Boost Pressure: ");
+  Serial.println(pkt.boostPressure);
 
-    Serial.print("Accel X: ");        Serial.println(pkt.accelerationX);
-    Serial.print("Accel Y: ");        Serial.println(pkt.accelerationY);
-    Serial.print("Accel Z: ");        Serial.println(pkt.accelerationZ);
+  Serial.print("Accel X: ");
+  Serial.println(pkt.accelerationX);
+  Serial.print("Accel Y: ");
+  Serial.println(pkt.accelerationY);
+  Serial.print("Accel Z: ");
+  Serial.println(pkt.accelerationZ);
 
-    Serial.print("Digital Pins: 0b"); Serial.println(pkt.digitalPins, BIN);
+  Serial.print("Digital Pins: 0b");
+  Serial.println(pkt.digitalPins, BIN);
 
-    Serial.print("Cruise Active: ");  Serial.println(pkt.cruiseActive);
-    Serial.print("Cruise Set: ");     Serial.println(pkt.cruiseSetValue);
+  Serial.print("Cruise Active: ");
+  Serial.println(pkt.cruiseActive);
+  Serial.print("Cruise Set: ");
+  Serial.println(pkt.cruiseSetValue);
 
-    Serial.println("--- GNSS ---");
+  Serial.println("--- GNSS ---");
 
-    Serial.printf("Date: %04u-%02u-%02u\n", pkt.year, pkt.month, pkt.day);
-    Serial.printf("Time: %02u:%02u:%02u\n", pkt.hour, pkt.minute, pkt.second);
+  Serial.printf("Date: %04u-%02u-%02u\n", pkt.year, pkt.month, pkt.day);
+  Serial.printf("Time: %02u:%02u:%02u\n", pkt.hour, pkt.minute, pkt.second);
 
-    Serial.print("Heading: ");
-    Serial.println(pkt.headingDeg / 100.0f);
+  Serial.print("Heading: ");
+  Serial.println(pkt.headingDeg / 100.0f);
 
-    Serial.print("Compass: ");
-    Serial.println(pkt.compass8);
+  Serial.print("Compass: ");
+  Serial.println(pkt.compass8);
 
-    Serial.println("------------------------");
+  Serial.println("------------------------");
 }

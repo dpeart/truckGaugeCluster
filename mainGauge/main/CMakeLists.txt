@@ -7,6 +7,7 @@ idf_component_register(
         "./src/p4_telemetry.cpp"
         "./src/p4_ota.cpp"
         "./src/GaugePacket.cpp"
+        "./src/StatsModule.cpp"
         "./src/updateSpeed.cpp"
         "./src/ui/images.c"
         "./src/ui/screens.c"

@@ -6,7 +6,7 @@
 // ---------------------------------------------------------
 enum class p4_mode_t : uint8_t {
     TELEMETRY = 0,
-
+    STATS,
     // C6-side modes (C6 will reboot)
     C6_OTA,
     C6_FACTORY_RESET,
@@ -73,3 +73,9 @@ void send_mode_provisioning();
 // ACK handler (C6 → P4)
 // ---------------------------------------------------------
 void handle_ack(const uint8_t *payload, uint8_t len);
+
+// ---------------------------------------------------------
+// Mode API
+// ---------------------------------------------------------
+void p4_set_mode(p4_mode_t newMode);
+p4_mode_t p4_get_mode(void);

@@ -1,6 +1,6 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[smallGauge4.eez-project]:/userPages/1",
+    "selectedUserPageObject": "[smallGauge4.eez-project]:/userPages/0",
     "selectedBitmapObject": "[smallGauge4.eez-project]:/bitmaps/3",
     "subnavigationSelectedItems": {}
   },
@@ -194,10 +194,10 @@
                 {
                   "type": "tab",
                   "id": "#2df9b9ab-4966-4b2c-9b68-6230b97b6caf",
-                  "name": "Settings",
+                  "name": "Main",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[smallGauge4.eez-project]:/userPages/1",
+                    "objectPath": "[smallGauge4.eez-project]:/userPages/0",
                     "permanent": false
                   },
                   "icon": "svg:page"

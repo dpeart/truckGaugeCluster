@@ -142,7 +142,7 @@ uint8_t currentTask = 0;
 void loop() {
   unsigned long currentMillis = millis();
 
-  if (currentMillis - previousGPS >= 1000) {
+  if (currentMillis - previousGPS >= 100) {
     previousGPS = currentMillis;
     gps.update(pkt);
   }
@@ -267,7 +267,7 @@ void generateDebugData() {
   iaTemp = 125 + 75 * sin(t * 0.04);
   oilTemp = 225 + 75 * sin(t * 0.05);
   coolantTemp = 200 + 50 * sin(t * 0.05);
-  transTemp = 190 + 20 * sin(t * 0.03);
+  transTemp = 170 + 90 * sin(t * 0.03);
   ambientTemp = 65 + 85 * sin(t * 0.01);
   EGTemp = 800 + 700 * sin(t * 0.05);
 

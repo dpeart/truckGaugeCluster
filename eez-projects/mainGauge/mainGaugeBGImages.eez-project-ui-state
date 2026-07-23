@@ -1,6 +1,7 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/0",
+    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/1",
+    "selectedActionObject": "[mainGaugeBGImages.eez-project]:/actions/2",
     "selectedFontObject": "[mainGaugeBGImages.eez-project]:/fonts/3",
     "selectedBitmapObject": "[mainGaugeBGImages.eez-project]:/bitmaps/4",
     "subnavigationSelectedItems": {}
@@ -23,7 +24,6 @@
           },
           {
             "type": "border",
-            "selected": 1,
             "size": 240,
             "location": "right",
             "children": [
@@ -117,7 +117,7 @@
             {
               "type": "row",
               "id": "#9a803f4a-9e4b-46f0-8b9d-23e9710f433b",
-              "weight": 15,
+              "weight": 27.0704748018854,
               "children": [
                 {
                   "type": "tabset",
@@ -165,7 +165,8 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ]
+                  ],
+                  "active": true
                 },
                 {
                   "type": "tabset",
@@ -188,28 +189,51 @@
             {
               "type": "tabset",
               "id": "EDITORS",
-              "weight": 55.39559543230016,
+              "weight": 46.69750993305632,
+              "selected": 1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
               "children": [
                 {
                   "type": "tab",
-                  "id": "#77689d03-c09c-49b2-aa13-14102dbc6be4",
-                  "name": "Main",
+                  "id": "#96f21d89-0587-42c0-af1b-ec5302eff357",
+                  "name": "Settings",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/0",
+                    "objectPath": "[mainGaugeBGImages.eez-project]:/settings",
+                    "subObjectPath": "[mainGaugeBGImages.eez-project]:/settings",
+                    "permanent": false
+                  },
+                  "icon": "material:settings"
+                },
+                {
+                  "type": "tab",
+                  "id": "#67a6b24f-bc0f-460f-b700-ba3ebeb742ff",
+                  "name": "Settings",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/1",
                     "permanent": false
                   },
                   "icon": "svg:page"
+                },
+                {
+                  "type": "tab",
+                  "id": "#77689d03-c09c-49b2-aa13-14102dbc6be4",
+                  "name": "Stats_screen",
+                  "component": "editor",
+                  "config": {
+                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/2",
+                    "permanent": true
+                  },
+                  "icon": "svg:page"
                 }
-              ],
-              "active": true
+              ]
             },
             {
               "type": "row",
               "id": "#a21855e5-5690-4b11-a382-e743ca0d991b",
-              "weight": 29.604404567699838,
+              "weight": 26.23201526505827,
               "children": [
                 {
                   "type": "tabset",
@@ -1067,7 +1091,7 @@
           "x": -261.235,
           "y": -299.375
         },
-        "scale": 0.75
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1082,7 +1106,8 @@
           "1": {},
           "4": {},
           "6": {},
-          "7": {
+          "7": {},
+          "8": {
             "$selected": true
           }
         }
@@ -1091,18 +1116,55 @@
     "[mainGaugeBGImages.eez-project]:/userPages/1[flow-state]": {
       "selectionFront": {},
       "selectionBack": {
-        "0": {
-          "0": {
-            "$selected": true
-          }
-        }
+        "0": {}
       },
       "transform": {
         "translate": {
           "x": -346.6900000000002,
           "y": -180
         },
-        "scale": 0.75
+        "scale": 0.67
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[mainGaugeBGImages.eez-project]:/userPages/2[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {
+        "0": {
+          "0": {
+            "$selected": true
+          },
+          "6": {}
+        }
+      },
+      "transform": {
+        "translate": {
+          "x": -262.72666666666674,
+          "y": -322.25333333333333
+        },
+        "scale": 0.67
+      },
+      "timeline": {
+        "isEditorActive": false,
+        "position": 0,
+        "secondToPx": 200,
+        "scrollLeft": 0
+      }
+    },
+    "[mainGaugeBGImages.eez-project]:/userPages/3[flow-state]": {
+      "selectionFront": {},
+      "selectionBack": {},
+      "transform": {
+        "translate": {
+          "x": -400,
+          "y": -400
+        },
+        "scale": 0.67
       },
       "timeline": {
         "isEditorActive": false,
@@ -1126,12 +1188,10 @@
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [
-    "TEXT"
-  ],
+  "lvglExpandedPropertiesGroup": [],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
-  "flowZoom": 0.75,
+  "flowZoom": 0.67,
   "implementationLanguage": "C",
   "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckDisplay\\eez-projects\\IBM_Plex_Mono\\IBMPlexMono-Medium.ttf"
 }

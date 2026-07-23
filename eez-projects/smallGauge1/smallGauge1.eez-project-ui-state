@@ -3,7 +3,6 @@
     "selectedUserPageObject": "[smallGauge1.eez-project]:/userPages/0",
     "selectedActionObject": "[smallGauge1.eez-project]:/actions/0",
     "selectedFontObject": "[smallGauge1.eez-project]:/fonts/1",
-    "selectedBitmapObject": "[smallGauge1.eez-project]:/bitmaps/4",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Actions"
     }
@@ -234,7 +233,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -254,8 +254,7 @@
                       "enableClose": false,
                       "icon": "svg:properties"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",

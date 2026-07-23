@@ -103,7 +103,8 @@ static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
         if (current_mode != p4_mode_t::TELEMETRY && !ota_upload_in_progress)
         {
             ESP_LOGI(TAG, "Stray state recovery: Forcing mode back to TELEMETRY");
-            current_mode = p4_mode_t::TELEMETRY;
+            // Stray state recovery: Forcing mode back to TELEMETRY
+            p4_set_mode(p4_mode_t::TELEMETRY);
         }
 
         GaugePacket pkt;
@@ -138,11 +139,11 @@ static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
             ESP_LOGW(TAG, "Ignoring stray CMD_MODE_P4_OTA (no OTA in progress)");
             break;
         }
-        current_mode = p4_mode_t::P4_OTA;
+        p4_set_mode(p4_mode_t::P4_OTA);
         break;
 
     case CMD_MODE_TELEMETRY:
-        current_mode = p4_mode_t::TELEMETRY;
+        p4_set_mode(p4_mode_t::TELEMETRY);
         break;
 
     case CMD_C6_UPLOAD_BEGIN:
