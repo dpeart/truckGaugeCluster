@@ -1,0 +1,22 @@
+idf_component_register(
+    SRCS
+        "main.cpp"
+        "CruiseControl.cpp"
+        "AuberinsSensors.cpp"
+        "interruptHandlers.cpp"
+    INCLUDE_DIRS "."
+    REQUIRES
+        common
+        driver
+        esp_event
+        esp_netif
+        esp_timer
+        esp_wifi
+        GNSS
+        MCP9601
+        nvs_flash
+        sequent_i2c
+        SM_16DIGIN
+        SM_16UNIVIN
+        SM_RTD
+)
