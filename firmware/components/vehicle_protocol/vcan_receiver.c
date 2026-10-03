@@ -1,4 +1,7 @@
+// vcan_receiver.c
+#include "vcan_protocol.h"
 #include "vcan_receiver.h"
+#include "vcan_sender.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -8,17 +11,6 @@
 #include <stdlib.h>
 
 static const char *TAG = "VCAN_RX";
-
-// Helpers: wire-format is little-endian for id and multi-byte fields.
-static inline uint16_t read_u16_le(const uint8_t *b) { return (uint16_t)(b[0] | (b[1] << 8)); }
-static inline uint32_t read_u32_le(const uint8_t *b) { return (uint32_t)(b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24)); }
-static inline int16_t read_s16_le(const uint8_t *b) { return (int16_t)read_u16_le(b); }
-static inline int32_t read_s32_le(const uint8_t *b) { return (int32_t)read_u32_le(b); }
-
-// ID helpers (must match vcan_build_id in transmitter)
-static inline uint8_t id_get_priority(uint32_t id) { return (uint8_t)((id >> 26) & 0x07); }
-static inline uint16_t id_get_pgn(uint32_t id) { return (uint16_t)((id >> 8) & 0xFFFF); }
-static inline uint8_t id_get_src(uint32_t id) { return (uint8_t)(id & 0xFF); }
 
 // Configurable limits
 #define VCAN_MAX_SUBS           64   // total subscription entries
@@ -158,20 +150,74 @@ esp_err_t vcan_receiver_init(void) {
     return ESP_OK;
 }
 
-// Process a single incoming frame buffer (id LE + len + payload)
-esp_err_t vcan_receiver_process_frame(const uint8_t *buf, size_t buf_len) {
-    if (!buf || buf_len < 5) return ESP_ERR_INVALID_ARG;
-    // parse id (LE)
-    uint32_t id = read_u32_le(&buf[0]);
-    uint8_t len = buf[4];
-    if (len > 8) return ESP_ERR_INVALID_SIZE;
-    if (buf_len < (size_t)(5 + len)) return ESP_ERR_INVALID_SIZE;
-    uint16_t pgn = id_get_pgn(id);
-    uint8_t src = id_get_src(id);
+// Forward declaration of dispatcher used by process_frame
+static esp_err_t vcan_dispatch(uint32_t id, const uint8_t *payload, uint8_t payload_len);
 
-    // optional: filter by source
+// Process a single incoming frame buffer (tolerant parser)
+// Accepts:
+//  - id(4 LE) + payload (compact)
+//  - id(4 LE) + len(1) + payload(len) (legacy variable-length)
+//  - fixed-size virtual_can_msg_t (fallback)
+esp_err_t vcan_receiver_process_frame(const uint8_t *buf, size_t buf_len) {
+    if (!buf || buf_len == 0) {
+        ESP_LOGW(TAG, "rx: empty buffer");
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    // Minimum 4 bytes for id
+    if (buf_len < 4) {
+        ESP_LOGW(TAG, "rx: too short for id len=%u", (unsigned)buf_len);
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    // Read 4-byte little-endian id
+    uint32_t id = vcan_read_u32_le(&buf[0]);
+
+    // Debug: show header and length (first 8 bytes for quick inspection)
+    uint8_t preview_len = (buf_len > 8) ? 8 : (uint8_t)buf_len;
+    ESP_LOGI(TAG, "rx: buf_len=%u id=0x%08X first=%02X %02X %02X %02X ... (preview %u bytes)",
+             (unsigned)buf_len, id,
+             buf[0], buf[1], buf[2], buf[3], (unsigned)preview_len);
+
+    // Case A: id + len + payload  -> buf_len == 5 + len and len <= 8
+    if (buf_len >= 5) {
+        uint8_t maybe_len = buf[4];
+        if (maybe_len <= 8 && buf_len == (size_t)(5 + maybe_len)) {
+            const uint8_t *payload = &buf[5];
+            uint8_t payload_len = maybe_len;
+            ESP_LOGD(TAG, "rx: format=id+len payload_len=%u pgn=0x%04X src=%u", payload_len, vcan_get_pgn(id), vcan_get_src(id));
+            return vcan_dispatch(id, payload, payload_len);
+        }
+    }
+
+    // Case B: id + payload (compact) -> payload_len = buf_len - 4 (0..8)
+    if ((buf_len - 4) <= 8) {
+        const uint8_t *payload = &buf[4];
+        uint8_t payload_len = (uint8_t)(buf_len - 4);
+        ESP_LOGD(TAG, "rx: format=id+payload payload_len=%u pgn=0x%04X src=%u", payload_len, vcan_get_pgn(id), vcan_get_src(id));
+        return vcan_dispatch(id, payload, payload_len);
+    }
+
+    // Case C: fixed-size virtual_can_msg_t fallback
+    if (buf_len == sizeof(virtual_can_msg_t)) {
+        const virtual_can_msg_t *msg = (const virtual_can_msg_t *)buf;
+        ESP_LOGD(TAG, "rx: format=fixed virtual_can_msg_t len=%u pgn=0x%04X src=%u", msg->len, vcan_get_pgn(msg->id), vcan_get_src(msg->id));
+        return vcan_dispatch(msg->id, msg->data, msg->len);
+    }
+
+    ESP_LOGW(TAG, "rx: unknown/truncated format buf_len=%u", (unsigned)buf_len);
+    return ESP_ERR_INVALID_SIZE;
+}
+
+// Internal: convert id -> pgn/src and enqueue event for worker
+static esp_err_t vcan_dispatch(uint32_t id, const uint8_t *payload, uint8_t payload_len) {
+    uint16_t pgn = vcan_get_pgn(id);
+    uint8_t src = vcan_get_src(id);
+
+    // optional: filter by source (keep as before)
     if (src != ADDR_ECU_DAQ) {
         // ignore other sources by default
+        ESP_LOGD(TAG, "ignoring src=%u pgn=0x%04X", src, pgn);
         return ESP_OK;
     }
 
@@ -179,8 +225,8 @@ esp_err_t vcan_receiver_process_frame(const uint8_t *buf, size_t buf_len) {
     vcan_event_t ev;
     ev.pgn = pgn;
     ev.src = src;
-    ev.len = len;
-    if (len) memcpy(ev.data, &buf[5], len);
+    ev.len = payload_len;
+    if (payload_len) memcpy(ev.data, payload, payload_len);
     else memset(ev.data, 0, sizeof(ev.data));
 
     if (!s_event_q) return ESP_ERR_INVALID_STATE;

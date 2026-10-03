@@ -186,6 +186,16 @@ void create_screen_main() {
                 }
             }
         }
+        {
+            // digital_speed
+            lv_obj_t *obj = lv_label_create(parent_obj);
+            objects.digital_speed = obj;
+            lv_obj_set_pos(obj, 0, 0);
+            lv_obj_set_size(obj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+            lv_obj_set_style_text_font(obj, &ui_font_roboto_condensed_80, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_obj_set_style_align(obj, LV_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+            lv_label_set_text(obj, "000");
+        }
     }
     
     tick_screen_main();
@@ -486,6 +496,8 @@ ext_font_desc_t fonts[] = {
     { "Roboto-Mono-35", &ui_font_roboto_mono_35 },
     { "Roboto-Mono-40", &ui_font_roboto_mono_40 },
     { "Roboto-Condensed-50", &ui_font_roboto_condensed_50 },
+    { "Roboto-Condensed-100", &ui_font_roboto_condensed_100 },
+    { "Roboto-Condensed-80", &ui_font_roboto_condensed_80 },
 #if LV_FONT_MONTSERRAT_8
     { "MONTSERRAT_8", &lv_font_montserrat_8 },
 #endif

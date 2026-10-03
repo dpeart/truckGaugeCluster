@@ -12,6 +12,7 @@ extern "C"
 {
 #endif
 
+    #define INT_SCALING 100 // Scale down from backend resolution (scaled by 10) to match meter range
     /**
      * @brief Animates the 'speed' meter needle smoothly.
      * @param target_speed The new speed value to animate to.
@@ -26,10 +27,8 @@ extern "C"
     void arc_anim_cb(lv_obj_t *arc, int32_t val);
     void text_update_cb(lv_obj_t *label, const char *str);
 
-    void updateIndicators(const GaugePacket *pkt);
-
     // High-level entry point for gauge_task
-    void gauge_ui_update(const GaugePacket *pkt, bool is_stale);
+    void gauge_ui_update(bool is_stale);
 
 #ifdef __cplusplus
 }

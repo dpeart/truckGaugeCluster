@@ -11,10 +11,12 @@
 #include <lvgl.h>
 #include "lv_demos.h"
 
-#include "src/ui/ui.h"
-#include "src/updateSpeed.h"
-#include "src/GaugePacket.h"
-#include "src/StatsModule.h"   // added for stats UI
+#include "ui.h"
+#include "updateUI.h"
+// #include "src/updateSpeed.h"
+// #include "src/GaugePacket.h"
+#include "StatsModule.h"   // added for stats UI
+#include "vcan_receiver.h" // added for VCAN telemetry stream
 
 // #include "src/espnow_receiver.h"
 // #include "src/espnow_task.h"
@@ -70,30 +72,26 @@ void lvgl_tick_task(void *arg)
 
 void runLVGLTask(void *arg)
 {
-    GaugePacket pkt{};
-    
     const TickType_t xPeriod = pdMS_TO_TICKS(20); // 50 FPS smooth clock
     TickType_t xLastWakeTime = xTaskGetTickCount();
 
     for (;;)
     {
-        // 1. Snag the latest target values from the C6 streaming cache
-        gauge_state_get(pkt); 
+        // Check if the VCAN data feed is stale (e.g., no heartbeat for 2000ms)[cite: 20]
+        bool is_stale = vcan_receiver_is_stale(2000);
 
-        lvgl_port_lock(-1);
+        // Lock LVGL for thread-safe rendering
+        bsp_display_lock(-1); // or lvgl_port_lock(-1) depending on your BSP setup
 
-        // 2. Pass target values to the UI on EVERY tick (20ms) 
-        // The UI functions will handle the internal smooth calculations.
-        update_speed_ui(pkt.speed);
-        update_tach_ui(pkt.rpm);
+        // Call the modular UI draw pipeline. 
+        // Individual gauge modules (like small_gauge) will pull from their 
+        // subscribed PGN cache, apply smoothing, and update the UI elements[cite: 15, 16].
+        gauge_ui_update(is_stale);
 
-        updateIndicators(pkt);
-        incrementOdometer(pkt);
-
-        // 3. Render the frame pass
+        // Render the frame pass
         lv_timer_handler();
 
-        lvgl_port_unlock();
+        bsp_display_unlock();
 
         vTaskDelayUntil(&xLastWakeTime, xPeriod);
     }
@@ -105,13 +103,15 @@ void runLVGLTask(void *arg)
 extern "C" void app_main(void)
 {
     // Disable messaging
-    esp_log_level_set("*", ESP_LOG_NONE);
-    esp_log_level_set("*", ESP_LOG_WARN);
-    // esp_log_level_set("updateSpeed", ESP_LOG_INFO);
-    // esp_log_level_set("P4_UART", ESP_LOG_INFO);
+    esp_log_level_set("*", ESP_LOG_VERBOSE);
+    // esp_log_level_set("*", ESP_LOG_DEBUG);
+    // esp_log_level_set("*", ESP_LOG_WARN);
+    esp_log_level_set("updateSpeed", ESP_LOG_NONE);
+    esp_log_level_set("P4_UART", ESP_LOG_NONE);
+    esp_log_level_set("VCAN_RX", ESP_LOG_NONE);
     // esp_log_level_set("P4_OTA", ESP_LOG_INFO);
-    esp_log_level_set("UI", ESP_LOG_INFO);
-    esp_log_level_set("StatsModule", ESP_LOG_INFO);
+    // esp_log_level_set("UI", ESP_LOG_INFO);
+    // esp_log_level_set("StatsModule", ESP_LOG_INFO);
     // esp_log_level_set("P4_TELEM", ESP_LOG_INFO);
     // esp_log_level_set("STATE", ESP_LOG_NONE);
     // esp_log_level_set("P4_MAIN", ESP_LOG_NONE);
@@ -126,7 +126,13 @@ extern "C" void app_main(void)
     // ---------------------------------------------------------
     // 2. Initialize global gauge state BEFORE UART RX starts
     // ---------------------------------------------------------
-    gauge_state_init();
+    // gauge_state_init();
+
+    // ---------------------------------------------------------
+    // 2. Initialize Native VCAN Receiver & Modules INSTEAD of GaugePacket
+    // ---------------------------------------------------------
+    vcan_receiver_init();
+    main_cluster_init();  // Registers PGN callbacks for this gauge module
 
     // ---------------------------------------------------------
     // 3. Initialize OTA system (queue + task)

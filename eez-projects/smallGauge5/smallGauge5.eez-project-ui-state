@@ -2,7 +2,6 @@
   "navigation": {
     "selectedUserPageObject": "[smallGauge5.eez-project]:/userPages/0",
     "selectedActionObject": "[smallGauge5.eez-project]:/actions/1",
-    "selectedGlobalVariableObject": "[smallGauge5.eez-project]:/variables/globalVariables/-1",
     "selectedFontObject": "[smallGauge5.eez-project]:/fonts/1",
     "selectedBitmapObject": "[smallGauge5.eez-project]:/bitmaps/6",
     "subnavigationSelectedItems": {
@@ -169,8 +168,7 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -208,7 +206,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",

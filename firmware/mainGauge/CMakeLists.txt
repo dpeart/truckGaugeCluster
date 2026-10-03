@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.16)
 
 set(EXTRA_COMPONENT_DIRS
     ./components/bsp_extra
+    "${CMAKE_CURRENT_LIST_DIR}/../components"
 )
 
 add_compile_options(-Wno-format)

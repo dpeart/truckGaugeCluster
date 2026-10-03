@@ -8,22 +8,6 @@
 extern "C" {
 #endif
 
-// Must match vehicle_protocol.h definitions
-#define ADDR_ECU_DAQ      0xFA
-
-// PGNs (must match transmitter)
-#define PGN_ENGINE_CORE    0xFF01
-#define PGN_PRESSURES      0xFF02
-#define PGN_TEMPS          0xFF03
-#define PGN_EXHAUST_DIG    0xFF04
-#define PGN_IMU_DYNAMICS   0xFF05
-#define PGN_CRUISE_ODO     0xFF06
-#define PGN_GPS_POS        0xFF10
-#define PGN_GPS_MOTION     0xFF11
-#define PGN_GPS_STATUS     0xFF12
-#define PGN_GNSS_TIME      0xFF13
-#define PGN_HEARTBEAT      0xFF20
-
 // Callback invoked when a PGN payload arrives.
 // pgn: PGN number, src: source address, payload: pointer to payload bytes, len: payload length, user_ctx: user pointer
 typedef void (*vcan_pgn_callback_t)(uint16_t pgn, uint8_t src, const uint8_t *payload, uint8_t len, void *user_ctx);

@@ -7,7 +7,6 @@
 #include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
-#include "GaugePacket.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -58,6 +58,8 @@ constexpr uint8_t CMD_STREAM_GAUGE    = 0x20;
 constexpr uint8_t CMD_STREAM_FIRMWARE = 0x21;
 constexpr uint8_t CMD_STREAM_FIRMWARE_DONE = 0x22;
 
+// Add to DATA STREAM COMMANDS PGN packets
+constexpr uint8_t CMD_STREAM_VCAN_FRAME = 0x03;
 
 // ---------------------------------------------------------
 // Mode send helpers (P4 → C6)

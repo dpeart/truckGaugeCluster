@@ -6,11 +6,12 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "GaugePacket.h"
+// #include "GaugePacket.h"
 #include "p4_telemetry.h"
 #include "p4_ota.h"
 #include "esp_ota_ops.h"
 #include "ui_actions.h"
+#include "vcan_receiver.h"
 
 static const char *TAG = "P4_UART";
 bool ota_upload_in_progress = false;
@@ -91,25 +92,33 @@ static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
         ESP_LOGI(TAG, "C6 reports BOOTED");
         break;
 
-    case CMD_STREAM_GAUGE:
+        // ---------------------------------------------------------
+        // NEW: Handle Raw VCAN Frames streaming from C6
+        // ---------------------------------------------------------
+    case CMD_STREAM_VCAN_FRAME:
     {
-        if (len != sizeof(GaugePacket))
+        if (len == 0)
         {
-            ESP_LOGW(TAG, "Bad GaugePacket size: %u (expected %u)", len, (unsigned)sizeof(GaugePacket));
+            ESP_LOGW(TAG, "Received empty VCAN frame payload");
             break;
         }
 
-        // SMART FIX: Auto-recover to TELEMETRY mode ONLY if we aren't mid-OTA
+        // Auto-recover to TELEMETRY mode ONLY if we aren't mid-OTA
         if (current_mode != p4_mode_t::TELEMETRY && !ota_upload_in_progress)
         {
             ESP_LOGI(TAG, "Stray state recovery: Forcing mode back to TELEMETRY");
-            // Stray state recovery: Forcing mode back to TELEMETRY
             p4_set_mode(p4_mode_t::TELEMETRY);
         }
 
-        GaugePacket pkt;
-        memcpy(&pkt, payload, sizeof(GaugePacket));
-        handle_gauge_packet(&pkt);
+        // Feed the raw bytes (ID + payload) straight into the native VCAN receiver
+        vcan_receiver_process_frame(payload, len);
+
+        break;
+    }
+
+    case CMD_STREAM_GAUGE:
+    {
+        // Deprecated or can be kept as fallback if needed
         break;
     }
 

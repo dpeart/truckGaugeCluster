@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.0
+
+### Features
+
+- Support for CherryUSB stack (input device)
+
+### Fixes
+
+- Fixed callbacks for DPI by IDF update (`on_refresh_done` --> `on_frame_buf_complete`)
+
 ## 2.8.0
 
 ### Features

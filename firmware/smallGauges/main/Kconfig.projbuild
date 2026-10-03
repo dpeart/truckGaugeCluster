@@ -1,9 +1,5 @@
 menu "Gauge Cluster Configuration"
 
-    config APP_PROJECT_NAME
-        string "Application Project Name"
-        default "smallGauge1"
-
     choice GAUGE_VARIANT
         prompt "Gauge Variant"
         default GAUGE_VARIANT_1
@@ -24,26 +20,14 @@ menu "Gauge Cluster Configuration"
 
         config GAUGE_VARIANT_5
             bool "Gauge 5"
-
     endchoice
 
-endmenu
-
-menu "Example Configuration"
-    config LV_MEM_SIZE_KILOBYTES
-        int "Size of the memory used by `lv_mem_alloc` in kilobytes (>= 2kB)"
-        default 48
-    config BT_ENABLED
-        bool "Select this option to enable Bluetooth"
-        default y 
-
-    config BT_BLE_50_FEATURES_SUPPORTED
-        bool "Enabling this option activates BLE 5.0 features"
-        default y 
-        
-    config BT_BLE_42_FEATURES_SUPPORTED
-        bool "This enables BLE 4.2 features."
-        default y 
-    
+    config APP_PROJECT_NAME
+        string "Application Project Name"
+        default "smallGauge1" if GAUGE_VARIANT_1
+        default "smallGauge2" if GAUGE_VARIANT_2
+        default "smallGauge3" if GAUGE_VARIANT_3
+        default "smallGauge4" if GAUGE_VARIANT_4
+        default "smallGauge5" if GAUGE_VARIANT_5
 
 endmenu

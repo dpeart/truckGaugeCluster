@@ -4,17 +4,19 @@ idf_component_register(
         "./src/slaveBootHandler.cpp"
         "./src/p4_uart.cpp"
         "./src/p4_modes.cpp"
-        "./src/p4_telemetry.cpp"
+        # "./src/p4_telemetry.cpp"
         "./src/p4_ota.cpp"
-        "./src/GaugePacket.cpp"
+        # "./src/GaugePacket.cpp"
         "./src/StatsModule.cpp"
-        "./src/updateSpeed.cpp"
+        # "./src/updateSpeed.cpp"
+        "./src/updateUI.cpp"
         "./src/ui/images.c"
         "./src/ui/screens.c"
         "./src/ui/styles.c"
         "./src/ui/ui.c"
         "./src/ui_actions.cpp"
         "./src/ui/ui_font_roboto_condensed_50.c"
+        "./src/ui/ui_font_roboto_condensed_80.c"
         "./src/ui/ui_font_roboto_mono_24.c"
         "./src/ui/ui_font_roboto_mono_30.c"
         "./src/ui/ui_font_roboto_mono_35.c"
@@ -36,6 +38,7 @@ idf_component_register(
         driver
         esp_timer
         nvs_flash
+        vehicle_protocol
 )
 
         # "./src/espnow_receiver.cpp"

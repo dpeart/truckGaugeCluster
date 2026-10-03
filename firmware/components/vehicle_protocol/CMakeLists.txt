@@ -1,3 +1,3 @@
-idf_component_register(SRCS "vcan_receiver.c" "vehicle_protocol.cpp"
+idf_component_register(SRCS "vcan_receiver.c" "vcan_sender.cpp"
                        INCLUDE_DIRS "include"
                        PRIV_REQUIRES esp_timer esp_wifi freertos)

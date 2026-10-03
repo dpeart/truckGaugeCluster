@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include "CruiseControl.h"
 #include "SM_16DIGIN.h"
 #include "Globals.h"
@@ -10,18 +9,18 @@ void cruise() {
   // int cruise_on = 0;
 
   // Update pins
-  int cruise_on = (digitalPins >> DIG_CRUISE_ON - 1) & 1;
+  int cruise_on = (digitalPins >> (DIG_CRUISE_ON - 1)) & 1;
   DB_PRINT("cruise_on: ");
-  DB_PRINTLN(cruise_on);
-  int cruise_set = (digitalPins >> DIG_CRUISE_SET - 1) & 1;
+  DB_PRINTLN("%d", cruise_on);
+  int cruise_set = (digitalPins >> (DIG_CRUISE_SET - 1)) & 1;
   DB_PRINT("cruise_set: ");
-  DB_PRINTLN(cruise_set);
-  int cruise_resume = (digitalPins >> DIG_CRUISE_RESUME - 1) & 1;
+  DB_PRINTLN("%d", cruise_set);
+  int cruise_resume = (digitalPins >> (DIG_CRUISE_RESUME - 1)) & 1;
   DB_PRINT("cruise_resume: ");
-  DB_PRINTLN(cruise_resume);
-  int cruise_cancel = (digitalPins >> DIG_BRAKE_LIGHT - 1) & 1;
+  DB_PRINTLN("%d", cruise_resume);
+  int cruise_cancel = (digitalPins >> (DIG_BRAKE_LIGHT - 1)) & 1;
   DB_PRINT("cruise_cancel: ");
-  DB_PRINTLN(cruise_cancel);// cruiseActive = 0; cruise off
+  DB_PRINTLN("%d", cruise_cancel);// cruiseActive = 0; cruise off
 
 // cruiseActive = 1; cruise on, but not driving
 // cruiseActive = 2; cruise on and driving
@@ -81,8 +80,8 @@ void cruise() {
     }
 
     DB_PRINT("cruiseActive: ");
-    DB_PRINTLN(cruiseActive);
+    DB_PRINTLN("%d", cruiseActive);
     DB_PRINT("cruiseSetValue: ");
-    DB_PRINTLN(cruiseSetValue);
+    DB_PRINTLN("%d", cruiseSetValue);
 
   }

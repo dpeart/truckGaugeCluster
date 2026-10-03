@@ -1,7 +1,6 @@
 #pragma once
 #include <stdint.h>
 #include <vector>
-#include "GaugePacket.h"
 #include "lvgl.h"
 
 class StatsModule
@@ -11,7 +10,6 @@ public:
 
     void start(); // User pressed stats_start
     void stop();  // Reset module back to IDLE
-    void update(const GaugePacket &pkt, uint32_t nowMs);
 
     bool isRunning() const { return state != IDLE && state != DONE; }
     bool isDone() const { return state == DONE; }
@@ -40,7 +38,7 @@ public:
 
     // LVGL Integration
     void lvglInit();
-    void lvglUpdateCharts(); // Updated: Takes no arguments
+    void lvglUpdateCharts();
 
 private:
     enum State
@@ -68,11 +66,11 @@ private:
     // Final results
     float zeroToSixtyMs;
     float quarterMileTrapSpeed;
-    float quarterMileMs; // Added: Stores total ET for quarter mile
+    float quarterMileMs;
 
     // Charts
-    std::vector<float> speedChart;       // mph at each 50 ft
-    std::vector<uint32_t> distanceChart; // elapsed ms at each 50 ft
+    std::vector<float> speedChart;       
+    std::vector<uint32_t> distanceChart; 
 
     // LVGL LINE INTEGRATION BUFFERS
     static const int LVGL_POINT_COUNT = 60;
@@ -89,7 +87,6 @@ private:
     int xStepPixels;
 
     // Private helper methods
-    float gpsSpeedMps(const GaugePacket &pkt);
     void pushPoint(float speed, float distanceMeters);
     void updateAxisScaling();
     void processTelemetryTick(); // Called periodically by stats_timer

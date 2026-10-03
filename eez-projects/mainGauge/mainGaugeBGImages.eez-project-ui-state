@@ -1,8 +1,8 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/1",
+    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/0",
     "selectedActionObject": "[mainGaugeBGImages.eez-project]:/actions/2",
-    "selectedFontObject": "[mainGaugeBGImages.eez-project]:/fonts/3",
+    "selectedFontObject": "[mainGaugeBGImages.eez-project]:/fonts/6",
     "selectedBitmapObject": "[mainGaugeBGImages.eez-project]:/bitmaps/4",
     "subnavigationSelectedItems": {}
   },
@@ -24,6 +24,7 @@
           },
           {
             "type": "border",
+            "selected": 1,
             "size": 240,
             "location": "right",
             "children": [
@@ -71,6 +72,7 @@
           },
           {
             "type": "border",
+            "selected": 0,
             "location": "bottom",
             "children": [
               {
@@ -165,8 +167,7 @@
                       "enableClose": false,
                       "icon": "svg:hierarchy"
                     }
-                  ],
-                  "active": true
+                  ]
                 },
                 {
                   "type": "tabset",
@@ -209,10 +210,10 @@
                 {
                   "type": "tab",
                   "id": "#67a6b24f-bc0f-460f-b700-ba3ebeb742ff",
-                  "name": "Settings",
+                  "name": "Main",
                   "component": "editor",
                   "config": {
-                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/1",
+                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/0",
                     "permanent": false
                   },
                   "icon": "svg:page"
@@ -228,7 +229,8 @@
                   },
                   "icon": "svg:page"
                 }
-              ]
+              ],
+              "active": true
             },
             {
               "type": "row",
@@ -1107,7 +1109,8 @@
           "4": {},
           "6": {},
           "7": {},
-          "8": {
+          "8": {},
+          "9": {
             "$selected": true
           }
         }
@@ -1188,10 +1191,12 @@
   "selectedStylePropertyName": "",
   "lvglPart": "MAIN",
   "lvglState": "DEFAULT",
-  "lvglExpandedPropertiesGroup": [],
+  "lvglExpandedPropertiesGroup": [
+    "TEXT"
+  ],
   "showInactiveFlowsInDebugger": true,
   "globalFlowZoom": true,
   "flowZoom": 0.67,
   "implementationLanguage": "C",
-  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckDisplay\\eez-projects\\IBM_Plex_Mono\\IBMPlexMono-Medium.ttf"
+  "openDialogDefaultPath": "C:\\Users\\davep\\espf-projects\\truckGaugeCluster\\eez-projects\\Roboto_Condensed\\RobotoCondensed-VariableFont_wght.ttf"
 }

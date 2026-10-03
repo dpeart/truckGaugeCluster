@@ -4,7 +4,7 @@ set(srcs
     "ota_handler.c"
 
     # Shared application logic
-    "src/GaugePacket.c"
+    # "src/GaugePacket.c"
     "src/espnow_receiver.c"
     "src/lvgl_lock.c"
     "src/ui_actions.c"
@@ -52,15 +52,13 @@ set(include_dirs
 )
 
 # -----------------------------------------------------------------------------
-# Direct Variant Selection
+# Direct Variant Selection (CMake-only, no Kconfig)
 # -----------------------------------------------------------------------------
 
 # Default to variant 1 if no flag is passed in command line
-if(NOT DEFINED GAUGE_VARIANT)
-    set(GAUGE_VARIANT "1")
-endif()
+set(GAUGE_VARIANT "1" CACHE STRING "Gauge variant")
 
-# Set project name dynamically
+# Set project name dynamically (used for SSID, hostname, and binary naming)
 set(APP_PROJECT_NAME "smallGauge${GAUGE_VARIANT}")
 
 # -----------------------------------------------------------------------------
@@ -71,6 +69,7 @@ if(GAUGE_VARIANT EQUAL 1)
 
     list(APPEND srcs
         "src/smallGauge1/updateUI.c"
+        "src/smallGauge1/small_gauge.c"
         "src/smallGauge1/ui/images.c"
         "src/smallGauge1/ui/screens.c"
         "src/smallGauge1/ui/styles.c"
@@ -92,6 +91,7 @@ elseif(GAUGE_VARIANT EQUAL 2)
 
     list(APPEND srcs
         "src/smallGauge2/updateUI.c"
+        "src/smallGauge2/small_gauge.c"
         "src/smallGauge2/ui/images.c"
         "src/smallGauge2/ui/screens.c"
         "src/smallGauge2/ui/styles.c"
@@ -112,6 +112,7 @@ elseif(GAUGE_VARIANT EQUAL 3)
 
     list(APPEND srcs
         "src/smallGauge3/updateUI.c"
+        "src/smallGauge3/small_gauge.c"
         "src/smallGauge3/ui/images.c"
         "src/smallGauge3/ui/screens.c"
         "src/smallGauge3/ui/styles.c"
@@ -131,6 +132,7 @@ elseif(GAUGE_VARIANT EQUAL 4)
 
     list(APPEND srcs
         "src/smallGauge4/updateUI.c"
+        "src/smallGauge4/small_gauge.c"
         "src/smallGauge4/ui/images.c"
         "src/smallGauge4/ui/screens.c"
         "src/smallGauge4/ui/styles.c"
@@ -148,6 +150,7 @@ elseif(GAUGE_VARIANT EQUAL 5)
 
     list(APPEND srcs
         "src/smallGauge5/updateUI.c"
+        "src/smallGauge5/small_gauge.c"
         "src/smallGauge5/ui/images.c"
         "src/smallGauge5/ui/screens.c"
         "src/smallGauge5/ui/styles.c"
@@ -182,8 +185,11 @@ idf_component_register(
     SRCS ${srcs}
     INCLUDE_DIRS ${include_dirs}
     REQUIRES
-        mdns esp_http_server wifi_provisioning app_update nvs_flash esp_wifi esp_event esp_netif driver esp_adc fatfs spi_flash
+        vehicle_protocol mdns esp_http_server wifi_provisioning app_update nvs_flash esp_wifi esp_event esp_netif driver esp_adc fatfs spi_flash
 )
+
+# Export APP_PROJECT_NAME as a C macro so wifi.c can use it
+target_compile_definitions(${COMPONENT_LIB} PRIVATE APP_PROJECT_NAME="${APP_PROJECT_NAME}")
 
 # Attach compile definitions to the registered component target AFTER registration
 add_custom_target(copy_gauge_bin ALL

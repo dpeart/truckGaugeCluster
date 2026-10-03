@@ -1,6 +1,6 @@
 {
   "idf.flashType": "UART",
-  "idf.port": "/dev/tty.usbmodem21101",
+  "idf.port": "COM8",
   "idf.customExtraVars": {
     "IDF_TARGET": "esp32p4"
 },

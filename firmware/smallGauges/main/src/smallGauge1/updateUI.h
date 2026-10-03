@@ -1,18 +1,31 @@
-#ifndef UPDATE_UI_H
-#define UPDATE_UI_H
+#pragma once
 
-#include "lvgl.h"
-#include "screens.h"
-#include "GaugePacket.h"
+#include <stdint.h>
+#include <stdbool.h>
 
-#define UPDATE_THRESHOLD 1
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-// Low-level meter/arc handlers
+// Threshold used by update_* helpers to avoid excessive LVGL updates.
+// If your project defines UPDATE_THRESHOLD elsewhere, that value will be used.
+#ifndef UPDATE_THRESHOLD
+#define UPDATE_THRESHOLD 2
+#endif
+
+ #define INT_SCALING 100 // scale factor for integer values (e.g., 7243 -> 72.43°F)
+
+// UI update helpers used by gauge modules and the main UI dispatcher.
+// Implementations live in updateUI.c.
 void update_coolant_meter(int32_t new_val);
 void update_oil_pressure_meter(int32_t new_val);
 void update_fuel_arc(int32_t new_val);
 
-// High-level entry point for gauge_task
-void gauge_ui_update(const GaugePacket *pkt, bool is_stale);
+// Single entry point called by gauge_task each frame.
+// - is_stale indicates whether the telemetry link is considered stale.
+// - pkt parameter removed: per-gauge modules read their own subscribed state.
+void gauge_ui_update(bool is_stale);
 
-#endif // UPDATE_UI_H
+#ifdef __cplusplus
+}
+#endif

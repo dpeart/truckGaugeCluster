@@ -1053,6 +1053,9 @@
       "selectionFront": {},
       "selectionBack": {
         "0": {
+          "0": {
+            "$selected": true
+          },
           "1": {
             "0": {}
           }

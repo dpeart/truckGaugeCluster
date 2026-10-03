@@ -30,6 +30,7 @@ typedef struct _objects_t {
     lv_obj_t *odometer;
     lv_obj_t *config;
     lv_obj_t *config_button;
+    lv_obj_t *digital_speed;
     lv_obj_t *obj1;
     lv_obj_t *p4_ota;
     lv_obj_t *obj2;

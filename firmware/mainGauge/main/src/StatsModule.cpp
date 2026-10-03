@@ -2,8 +2,11 @@
 #include "screens.h" // EEZ Studio generated objects
 #include "lvgl.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include <cmath>
+#include <cstdio>
 #include "p4_modes.h" // for p4_get_mode()
+#include "updateUI.h" // <--- Pulls speed from the new thread-safe atomic cache
 
 static const char *TAG_STATS = "StatsModule";
 
@@ -20,15 +23,8 @@ static void stats_chart_draw_cb(lv_event_t *e)
     {
         if (dsc->id == LV_CHART_AXIS_PRIMARY_X && dsc->text != NULL)
         {
-            // dsc->value is ALREADY the exact X-axis scale value configured by lv_chart_set_range!
-            // E.g., if X-axis range is 0..11, dsc->value will be 0, 2, 5, 8, 11, etc.
             int val = dsc->value;
-
-            // Handle decimal values if dsc->value is passed as scaled fixed-point
             if (val < 0) val = 0;
-
-            // Format tick directly (e.g. "0s", "2.5s", "10s" or "10.2s")
-            // If dsc->value is integer seconds:
             snprintf(dsc->text, dsc->text_length, "%ds", val);
         }
     }
@@ -88,29 +84,20 @@ void StatsModule::lvglInit()
         return;
     }
 
-    // 1. Force Scatter mode for dynamic scaling
     lv_chart_set_type(objects.stats_chart, LV_CHART_TYPE_SCATTER);
-
-    // 2. Setup background grid (4 horizontal, 5 vertical divisions)
     lv_chart_set_div_line_count(objects.stats_chart, 4, 5);
 
-    // 3. Grid line styling
     lv_obj_set_style_line_color(objects.stats_chart, lv_color_hex(0x666666), LV_PART_MAIN);
     lv_obj_set_style_line_opa(objects.stats_chart, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_line_width(objects.stats_chart, 2, LV_PART_MAIN);
 
-    // 4. Add padding so axis label text isn't clipped
     lv_obj_set_style_pad_left(objects.stats_chart, 40, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(objects.stats_chart, 25, LV_PART_MAIN);
 
-    // 5. Configure Axis Ticks (5 major ticks on X and Y, 2 minor ticks)
     lv_chart_set_axis_tick(objects.stats_chart, LV_CHART_AXIS_PRIMARY_Y, 10, 5, 5, 2, true, 40);
     lv_chart_set_axis_tick(objects.stats_chart, LV_CHART_AXIS_PRIMARY_X, 10, 5, 5, 2, true, 25);
 
-    // 6. Register draw event callback to format X-axis time labels on the fly
     lv_obj_add_event_cb(objects.stats_chart, stats_chart_draw_cb, LV_EVENT_DRAW_PART_BEGIN, this);
-
-    ESP_LOGI(TAG_STATS, "lvglInit: setting up line buffers");
 
     if (objects.speed_chart == nullptr || objects.distance_chart == nullptr)
     {
@@ -172,7 +159,6 @@ void StatsModule::start()
     totalRunMs = 0;
     lastTickMs = 0;
 
-    // Clear UI text labels for fresh run
     if (objects.zero_to_sixty_time)
         lv_label_set_text(objects.zero_to_sixty_time, "--.-- s");
     if (objects.quartermiletime)
@@ -190,7 +176,6 @@ void StatsModule::start()
         distancePoints[i].y = 0;
     }
 
-    // Reset line points on screen
     if (objects.speed_chart)
         lv_line_set_points(objects.speed_chart, speedPoints, 0);
     if (objects.distance_chart)
@@ -227,11 +212,8 @@ void StatsModule::stop()
 
 void StatsModule::processTelemetryTick()
 {
-    // 1. Fetch live telemetry packet
-    GaugePacket pkt;
-    gauge_state_get(pkt);
-
-    float speed_mph = pkt.speed;
+    // 1. Fetch live speed securely from thread-safe atomic cache via updateUI
+    float speed_mph = get_current_speed_mph();
 
     // Get precise hardware time in milliseconds
     uint32_t now_ms = static_cast<uint32_t>(esp_timer_get_time() / 1000ULL);
@@ -244,7 +226,6 @@ void StatsModule::processTelemetryTick()
     switch (state)
     {
     case ARMED:
-        // Mark vehicle as stopped once speed drops below threshold
         if (speed_mph <= 0.5f)
         {
             if (!hasStopped)
@@ -254,7 +235,6 @@ void StatsModule::processTelemetryTick()
             }
         }
 
-        // Only launch on a rising edge (was stopped, now moving > 0.5 mph)
         if (hasStopped && speed_mph > 0.5f)
         {
             ESP_LOGI(TAG_STATS, "LAUNCH DETECTED! (speed=%.2f mph) Transitioning ARMED -> CAPTURING", speed_mph);
@@ -272,17 +252,13 @@ void StatsModule::processTelemetryTick()
 
     case CAPTURING:
     {
-        // Smooth high-resolution distance calculation via speed integration
         float speed_mps = speed_mph * 0.44704f;
         accumulatedDistanceMeters += speed_mps * dt_sec;
         float distance_m = accumulatedDistanceMeters;
 
         uint32_t elapsedMs = now_ms - startMs;
-        totalRunMs = elapsedMs; // Store precise wall-clock duration
+        totalRunMs = elapsedMs;
 
-        // -------------------------------------------------------------
-        // FAIL SAFE 1: Vehicle Stopped Mid-Run (Aborted)
-        // -------------------------------------------------------------
         if (elapsedMs > 2000 && speed_mph <= 0.5f)
         {
             ESP_LOGW(TAG_STATS, "RUN ABORTED: Vehicle stopped before 1/4 mile mark.");
@@ -295,9 +271,6 @@ void StatsModule::processTelemetryTick()
             break;
         }
 
-        // -------------------------------------------------------------
-        // FAIL SAFE 2: RAM Buffer Full or Timeout reached (60s max run)
-        // -------------------------------------------------------------
         if (historyCount >= MAX_RUN_SAMPLES || elapsedMs >= 60000)
         {
             ESP_LOGW(TAG_STATS, "RUN TIMEOUT / BUFFER FULL: Ending capture automatically.");
@@ -310,19 +283,12 @@ void StatsModule::processTelemetryTick()
             break;
         }
 
-        // -------------------------------------------------------------
-        // SAFE RECORDING: Bounds check passed, record sample
-        // -------------------------------------------------------------
         speedHistory[historyCount] = speed_mph;
         distanceHistory[historyCount] = distance_m;
         historyCount++;
 
-        // Update live graph compression
         lvglUpdateCharts();
 
-        // -------------------------------------------------------------
-        // SUCCESS CONDITIONS: 0-60 & 1/4 Mile Checks
-        // -------------------------------------------------------------
         if (speed_mph >= 60.0f && zeroToSixtyMs == 0.0f)
         {
             zeroToSixtyMs = static_cast<float>(elapsedMs);
@@ -345,12 +311,10 @@ void StatsModule::processTelemetryTick()
             state = DONE;
 
             char buf[32];
-            // 1/4 Mile ET Label
             snprintf(buf, sizeof(buf), "%.2f s", quarterMileMs / 1000.0f);
             if (objects.quartermiletime)
                 lv_label_set_text(objects.quartermiletime, buf);
 
-            // 1/4 Mile Trap Speed Label
             snprintf(buf, sizeof(buf), "%.1f mph", quarterMileTrapSpeed);
             if (objects.quartermilespeed)
                 lv_label_set_text(objects.quartermilespeed, buf);
@@ -422,7 +386,6 @@ void StatsModule::lvglUpdateCharts()
         return;
     }
 
-    // 1. Calculate running max for dynamic Y-axis scaling
     float maxSpd = 1.0f;
     float maxDst = 1.0f;
     for (int i = 0; i < historyCount; ++i)
@@ -433,10 +396,9 @@ void StatsModule::lvglUpdateCharts()
             maxDst = distanceHistory[i];
     }
 
-    float speedMax = maxSpd * 1.1f; // ~90% fill
+    float speedMax = maxSpd * 1.1f;
     float distMax = maxDst * 1.1f;
 
-    // 2. Get line widget display dimensions
     int w_speed = lv_obj_get_width(objects.speed_chart);
     int h_speed = lv_obj_get_height(objects.speed_chart);
     if (w_speed <= 0) w_speed = 1;
@@ -447,7 +409,6 @@ void StatsModule::lvglUpdateCharts()
     if (w_dist <= 0) w_dist = 1;
     if (h_dist <= 0) h_dist = 1;
 
-    // 3. Determine how many points to plot
     int pointsToPlot = (historyCount < LVGL_POINT_COUNT) ? historyCount : LVGL_POINT_COUNT;
 
     for (int i = 0; i < pointsToPlot; ++i)
@@ -472,21 +433,17 @@ void StatsModule::lvglUpdateCharts()
         distancePoints[i].y = value_to_y_pixel(distanceHistory[srcIdx], distMax, h_dist);
     }
 
-    // 4. Update line objects
     lv_line_set_points(objects.speed_chart, speedPoints, pointsToPlot);
     lv_line_set_points(objects.distance_chart, distancePoints, pointsToPlot);
 
-    // 5. Update parent lv_chart Axis Ranges
     if (objects.stats_chart != nullptr)
     {
-        // Y-Axis Range
         lv_chart_set_range(
             objects.stats_chart,
             LV_CHART_AXIS_PRIMARY_Y,
             0,
             static_cast<lv_coord_t>(std::ceil(speedMax)));
 
-        // X-Axis Range: Exact hardware duration in seconds
         float totalSeconds = totalRunMs / 1000.0f;
         if (totalSeconds < 0.1f) totalSeconds = 0.1f;
 
@@ -496,7 +453,6 @@ void StatsModule::lvglUpdateCharts()
             0,
             static_cast<lv_coord_t>(std::ceil(totalSeconds)));
 
-        // Trigger redrawing of grid lines & tick text
         lv_obj_invalidate(objects.stats_chart);
     }
 }

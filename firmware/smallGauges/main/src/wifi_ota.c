@@ -17,8 +17,8 @@
 static const char *TAG = "WIFI_OTA";
 
 #define PROV_POP "abcd1234"
-#define PROV_SSID CONFIG_APP_PROJECT_NAME
-#define HOSTNAME CONFIG_APP_PROJECT_NAME
+#define PROV_SSID APP_PROJECT_NAME
+#define HOSTNAME APP_PROJECT_NAME
 
 static httpd_handle_t server = NULL;
 static esp_netif_t *sta_netif = NULL;

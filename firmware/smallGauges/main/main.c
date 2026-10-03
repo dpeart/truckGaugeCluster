@@ -28,10 +28,13 @@
 
 #include "ui.h"
 #include "updateUI.h"
-#include "GaugePacket.h"
+// #include "GaugePacket.h"
 #include "espnow_receiver.h"
 #include "lvgl_lock.h"
 #include "wifi_ota.h"
+
+#include "vcan_receiver.h"
+#include "small_gauge.h"
 
 #define CONFIG_ESPNOW_CHANNEL 1
 #define LVGL_BUF_LEN (EXAMPLE_LCD_WIDTH * EXAMPLE_LCD_HEIGHT)
@@ -76,7 +79,6 @@ static void lvgl_task(void *arg)
 
 void gauge_task(void *arg)
 {
-    GaugePacket pkt;
     bool was_stale = false;
 
     // Wait for UI initialization
@@ -95,7 +97,7 @@ void gauge_task(void *arg)
         }
 
         // 1. Stale link detection for ALL gauge variants (2000 ms timeout)
-        bool is_stale = gauge_state_is_stale(2000);
+        bool is_stale = vcan_receiver_is_stale(2000);
         if (is_stale != was_stale)
         {
             if (is_stale)
@@ -105,12 +107,9 @@ void gauge_task(void *arg)
             was_stale = is_stale;
         }
 
-        // 2. Fetch telemetry packet
-        gauge_state_get(&pkt);
-
-        // 3. Lock LVGL and dispatch updates + stale state
+        // 2. Lock LVGL and dispatch per-gauge draws (per-gauge modules read their own state)
         lvgl_lock();
-        gauge_ui_update(&pkt, is_stale);
+        gauge_ui_update(is_stale);
         lvgl_unlock();
 
         vTaskDelay(pdMS_TO_TICKS(16)); // ~60 FPS update rate
@@ -166,8 +165,13 @@ void Driver_Init(void)
 
 void app_main(void)
 {
-    esp_log_level_set("*", ESP_LOG_INFO);
+    esp_log_level_set("*", ESP_LOG_NONE); // global: disable all logging
 
+    esp_log_level_set("*", ESP_LOG_DEBUG); // global: enable DEBUG for all tags
+    // or per-module:
+    esp_log_level_set("small_gauge", ESP_LOG_VERBOSE);
+    esp_log_level_set("updateUI", ESP_LOG_DEBUG);
+    esp_log_level_set("VCAN_RX", ESP_LOG_NONE);
     ESP_LOGI(TAG, "Starting Truck Gauge Cluster");
 
     esp_err_t ret = nvs_flash_init();
@@ -214,8 +218,11 @@ void app_main(void)
         NULL,
         1);
 
-    gauge_state_init();
+    // --- Replace global GaugePacket init with vcan + per-gauge init ---
+    // gauge_state_init();   // removed: no longer needed when using per-gauge subscriptions
     espnow_receiver_init(1);
+    vcan_receiver_init(); // start vcan receiver worker and subscription system
+    small_gauge_init();   // register callbacks and prime small_gauge state
 
     xTaskCreatePinnedToCore(
         gauge_task,

@@ -12,6 +12,8 @@ extern const lv_font_t ui_font_roboto_mono_30;
 extern const lv_font_t ui_font_roboto_mono_35;
 extern const lv_font_t ui_font_roboto_mono_40;
 extern const lv_font_t ui_font_roboto_condensed_50;
+extern const lv_font_t ui_font_roboto_condensed_100;
+extern const lv_font_t ui_font_roboto_condensed_80;
 
 #ifndef EXT_FONT_DESC_T
 #define EXT_FONT_DESC_T

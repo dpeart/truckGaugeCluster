@@ -6,9 +6,11 @@
 // ---------------------------------------------------------
 // Feature flags
 // ---------------------------------------------------------
-#define DEBUG 1
 #define X4
 
+extern bool DEBUG_SIMULATION_MODE;
+ #define INT_SCALING 100 // Scale down from backend resolution (scaled by 100) to match meter range
+ 
 // ---------------------------------------------------------
 // I2C Addresses
 // ---------------------------------------------------------
@@ -77,7 +79,7 @@ static const gpio_num_t SHUTDOWN  = GPIO_NUM_14;
 #define I2C_MASTER_NUM I2C_NUM_0
 #define I2C_MASTER_SDA_IO GPIO_NUM_21
 #define I2C_MASTER_SCL_IO GPIO_NUM_22
-#define I2C_MASTER_FREQ_HZ 400000
+#define I2C_MASTER_FREQ_HZ 20000
 
 // ---------------------------------------------------------
 // External variables (defined in main or DAQ modules)

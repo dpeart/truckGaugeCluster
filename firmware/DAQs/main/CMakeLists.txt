@@ -1,6 +1,11 @@
 idf_component_register(
     SRCS
     "main.cpp"
+    "AuberinsSensors.cpp"
+    "CruiseControl.cpp"
+    "daq_cache.cpp"
+    "sender_sched.cpp"
+    "interruptHandlers.cpp"
     INCLUDE_DIRS "."
     REQUIRES
         esp_event
@@ -13,4 +18,5 @@ idf_component_register(
         SM_16UNIVIN
         SM_RTD
         nvs_flash
+        vehicle_protocol
 )

@@ -1,9 +1,5 @@
 {
   "navigation": {
-    "selectedUserPageObject": "[mainGaugeBGImages.eez-project]:/userPages/0",
-    "selectedGlobalVariableObject": "[mainGaugeBGImages.eez-project]:/variables/globalVariables/-1",
-    "selectedFontObject": "[mainGaugeBGImages.eez-project]:/fonts/6",
-    "selectedBitmapObject": "[mainGaugeBGImages.eez-project]:/bitmaps/6",
     "subnavigationSelectedItems": {
       "variables-tab/sub-navigation/selected-item": "Global"
     }
@@ -192,21 +188,10 @@
               "type": "tabset",
               "id": "EDITORS",
               "weight": 55.39559543230016,
+              "selected": -1,
               "enableDeleteWhenEmpty": false,
               "enableClose": false,
-              "children": [
-                {
-                  "type": "tab",
-                  "id": "#77689d03-c09c-49b2-aa13-14102dbc6be4",
-                  "name": "Main",
-                  "component": "editor",
-                  "config": {
-                    "objectPath": "[mainGaugeBGImages.eez-project]:/userPages/0",
-                    "permanent": false
-                  },
-                  "icon": "svg:page"
-                }
-              ]
+              "children": []
             },
             {
               "type": "row",
