@@ -1,117 +1,79 @@
 #pragma once
-#include <stdint.h>
-#include <stdbool.h>
-#include "sequent_i2c.h" // your ESP-IDF I2C abstraction
 
-#define UI_UNIV_CH_NR 16
-#define UI_ANALOG_VAL_SIZE 2
-#define UI_DIG_CH_NO 8
-#define UI_COUNTER_SIZE 4
-#define UI_OPTO_ENC_CH_NO 4
-#define UI_CALIBRATION_KEY 0xaa
-#define UI_RESET_CALIBRATION_KEY 0x55
-#define UI_MODBUS_SETTINGS_SIZE_B 5
+#include <cstdint>
+#include <cstdbool>
+#include "driver/i2c.h"
+#include "esp_err.h"
 
-enum
-{
-	UI_I2C_MEM_LEDS = 0,
-	UI_I2C_MEM_LED_SET = UI_I2C_MEM_LEDS + 2,
-	UI_I2C_MEM_LED_CLR,
-
-	UI_I2C_MEM_DRY_CONTACT,
-
-	UI_I2C_U0_10_IN_VAL1_ADD = UI_I2C_MEM_DRY_CONTACT + 2,
-
-	UI_I2C_R_1K_CH1 = UI_I2C_U0_10_IN_VAL1_ADD + UI_UNIV_CH_NR * UI_ANALOG_VAL_SIZE,
-	UI_I2C_R_10K_CH1 = UI_I2C_R_1K_CH1 + UI_UNIV_CH_NR * UI_ANALOG_VAL_SIZE,
-
-	UI_I2C_MEM_DIAG_TEMPERATURE_ADD = UI_I2C_R_10K_CH1 + UI_UNIV_CH_NR * UI_ANALOG_VAL_SIZE,
-	UI_I2C_MEM_DC_CNT_ENABLE,
-
-	UI_I2C_MEM_DC_CNT_RST_ADD = UI_I2C_MEM_DC_CNT_ENABLE + 2,
-
-	UI_I2C_MEM_DC_CNT_ADD,
-	UI_I2C_MEM_DC_CNT_END_ADD = UI_I2C_MEM_DC_CNT_ADD + UI_UNIV_CH_NR * UI_COUNTER_SIZE,
-
-	UI_I2C_MEM_UPDATE_ADD = 0xaa,
-
-	UI_I2C_MEM_CALIB_VALUE,
-	UI_I2C_MEM_CALIB_CHANNEL = UI_I2C_MEM_CALIB_VALUE + 4,
-	UI_I2C_MEM_CALIB_KEY,
-	UI_I2C_MEM_CALIB_STATUS,
-
-	UI_I2C_RTC_YEAR_ADD,
-	UI_I2C_RTC_MONTH_ADD,
-	UI_I2C_RTC_DAY_ADD,
-	UI_I2C_RTC_HOUR_ADD,
-	UI_I2C_RTC_MINUTE_ADD,
-	UI_I2C_RTC_SECOND_ADD,
-	UI_I2C_RTC_SET_YEAR_ADD,
-	UI_I2C_RTC_SET_MONTH_ADD,
-	UI_I2C_RTC_SET_DAY_ADD,
-	UI_I2C_RTC_SET_HOUR_ADD,
-	UI_I2C_RTC_SET_MINUTE_ADD,
-	UI_I2C_RTC_SET_SECOND_ADD,
-	UI_I2C_RTC_CMD_ADD,
-
-	UI_I2C_MEM_WDT_RESET_ADD,
-	UI_I2C_MEM_WDT_INTERVAL_SET_ADD,
-	UI_I2C_MEM_WDT_INTERVAL_GET_ADD = UI_I2C_MEM_WDT_INTERVAL_SET_ADD + 2,
-	UI_I2C_MEM_WDT_INIT_INTERVAL_SET_ADD = UI_I2C_MEM_WDT_INTERVAL_GET_ADD + 2,
-	UI_I2C_MEM_WDT_INIT_INTERVAL_GET_ADD = UI_I2C_MEM_WDT_INIT_INTERVAL_SET_ADD + 2,
-	UI_I2C_MEM_WDT_RESET_COUNT_ADD = UI_I2C_MEM_WDT_INIT_INTERVAL_GET_ADD + 2,
-	UI_I2C_MEM_WDT_CLEAR_RESET_COUNT_ADD = UI_I2C_MEM_WDT_RESET_COUNT_ADD + 2,
-	UI_I2C_MEM_WDT_POWER_OFF_INTERVAL_SET_ADD,
-	UI_I2C_MEM_WDT_POWER_OFF_INTERVAL_GET_ADD = UI_I2C_MEM_WDT_POWER_OFF_INTERVAL_SET_ADD + 4,
-
-	UI_I2C_MEM_BUTTON = UI_I2C_MEM_WDT_POWER_OFF_INTERVAL_GET_ADD + 4,
-	UI_I2C_MEM_DIAG_RASP_V,
-	UI_I2C_MEM_DIAG_RASP_V1,
-
-	UI_I2C_MODBUS_SETINGS_ADD,
-
-	UI_I2C_MEM_REVISION_HW_MAJOR_ADD = UI_I2C_MODBUS_SETINGS_ADD + UI_MODBUS_SETTINGS_SIZE_B,
-	UI_I2C_MEM_REVISION_HW_MINOR_ADD,
-	UI_I2C_MEM_REVISION_MAJOR_ADD,
-	UI_I2C_MEM_REVISION_MINOR_ADD,
-
-};
-
+#define UI_UNIV_CH_NR         16
+#define UI_ANALOG_VAL_SIZE    2
+#define UI_COUNTER_SIZE       4
 #define UI_SLAVE_OWN_ADDRESS_BASE 0x58
 
-class SM_16_UNIVIN
-{
+enum {
+    UI_I2C_MEM_LEDS = 0,
+    UI_I2C_MEM_LED_SET = UI_I2C_MEM_LEDS + 2,
+    UI_I2C_MEM_LED_CLR,
+
+    UI_I2C_MEM_DRY_CONTACT,
+
+    UI_I2C_U0_10_IN_VAL1_ADD = UI_I2C_MEM_DRY_CONTACT + 2,
+
+    UI_I2C_R_1K_CH1 = UI_I2C_U0_10_IN_VAL1_ADD + UI_UNIV_CH_NR * UI_ANALOG_VAL_SIZE,
+    UI_I2C_R_10K_CH1 = UI_I2C_R_1K_CH1 + UI_UNIV_CH_NR * UI_ANALOG_VAL_SIZE,
+
+    UI_I2C_MEM_DIAG_TEMPERATURE_ADD = UI_I2C_R_10K_CH1 + UI_UNIV_CH_NR * UI_ANALOG_VAL_SIZE,
+    UI_I2C_MEM_DC_CNT_ENABLE,
+
+    UI_I2C_MEM_DC_CNT_RST_ADD = UI_I2C_MEM_DC_CNT_ENABLE + 2,
+
+    UI_I2C_MEM_DC_CNT_ADD,
+    UI_I2C_MEM_DC_CNT_END_ADD = UI_I2C_MEM_DC_CNT_ADD + UI_UNIV_CH_NR * UI_COUNTER_SIZE,
+
+    UI_I2C_MEM_REVISION_HW_MAJOR_ADD = 0x33,
+    UI_I2C_MEM_REVISION_HW_MINOR_ADD,
+    UI_I2C_MEM_REVISION_MAJOR_ADD,
+    UI_I2C_MEM_REVISION_MINOR_ADD,
+};
+
+class SM_16_UNIVIN {
 public:
-	SM_16_UNIVIN(uint8_t stack = 0);
+    /**
+     * @brief Construct a new SM_16_UNIVIN object
+     * @param i2c_port ESP-IDF I2C port (e.g. I2C_NUM_0)
+     * @param stack Address jumper stack level [0..7]
+     */
+    SM_16_UNIVIN(i2c_port_t i2c_port = I2C_NUM_0, uint8_t stack = 0);
 
-	bool begin();
-	bool isAlive();
+    bool begin();
+    bool isAlive() const;
 
-	bool writeLED(uint8_t led, bool val);
-	bool writeLED(uint16_t bitmap);
+    // LED controls
+    bool writeLED(uint8_t led, bool val);
+    bool writeLED(uint16_t val);
 
-	int readAnalogMv(uint8_t channel);
-	int readRes1k(uint8_t channel);
-	int readRes10k(uint8_t channel);
+    // Analog readings
+    int readAnalogMv(uint8_t channel);
+    int readRes1k(uint8_t channel);
+    int readRes10k(uint8_t channel);
 
-	bool readDC(uint8_t channel);
-	int readDC();
+    // Dry contact input readings
+    bool readDC(uint8_t channel);
+    int readDC();
 
-	bool cfgCounter(uint8_t channel, bool enable);
-	int readCounter(uint8_t channel);
-	bool resetCounter(uint8_t channel);
+    // Pulse counter functions
+    bool cfgCounter(uint8_t channel, bool enable);
+    int readCounter(uint8_t channel);
+    bool resetCounter(uint8_t channel);
 
 private:
-	uint8_t _hwAdd;
-	bool _detected;
+    i2c_port_t _i2c_port;
+    uint8_t _hwAdd;
+    bool _detected;
 
-	bool readBytes(uint8_t reg, uint8_t *buf, uint8_t len);
-	int readByte(uint8_t reg, uint8_t *value);
-	int readWord(uint8_t reg, uint16_t *value);
-	int readDWord(uint8_t reg, uint32_t *value);
-	int readSignedDWord(uint8_t reg, int32_t *value);
-
-	int writeByte(uint8_t reg, uint8_t value);
-	int writeWord(uint8_t reg, uint16_t value);
-	int writeDWord(uint8_t reg, uint32_t value);
+    esp_err_t writeByte(uint8_t reg, uint8_t val);
+    esp_err_t writeWord(uint8_t reg, uint16_t val);
+    esp_err_t readByte(uint8_t reg, uint8_t *val);
+    esp_err_t readWord(uint8_t reg, uint16_t *val);
+    esp_err_t readDWord(uint8_t reg, uint32_t *val);
 };

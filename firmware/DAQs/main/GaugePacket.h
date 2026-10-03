@@ -163,47 +163,67 @@ pkt.gpsSatCount = gpsSatCount;
 // ------------------------------------------------------------
 // printGaugePacket()
 // ------------------------------------------------------------
-#include <esp_log.h>
+static inline void printGaugePacket(const GaugePacket &pkt) {
+  Serial.println("----- GaugePacket -----");
 
-static const char* TAG_PKT = "GaugePacket";
+  Serial.print("Speed: ");
+  Serial.println(pkt.speed);
+  Serial.print("RPM: ");
+  Serial.println(pkt.rpm);
+  Serial.print("ODO: ");
+  Serial.println(pkt.odometerTenths);
+  Serial.print("Gear: ");
+  Serial.println(pkt.gearPosition);
+  Serial.print("FuelLevel: ");
+  Serial.println(pkt.fuelLevel);
+  Serial.print("BatteryLevel: ");
+  Serial.println(pkt.batteryLevel);
 
-static inline void printGaugePacket(const GaugePacket &pkt)
-{
-    ESP_LOGI(TAG_PKT, "----- GaugePacket -----");
+  Serial.print("IA Temp: ");
+  Serial.println(pkt.iaTemp);
+  Serial.print("Oil Temp: ");
+  Serial.println(pkt.oilTemp);
+  Serial.print("Coolant Temp: ");
+  Serial.println(pkt.coolantTemp);
+  Serial.print("Trans Temp: ");
+  Serial.println(pkt.transTemp);
+  Serial.print("Ambient Temp: ");
+  Serial.println(pkt.ambientTemp);
+  Serial.print("EGT: ");
+  Serial.println(pkt.EGTemp);
 
-    ESP_LOGI(TAG_PKT, "Speed: %d", pkt.speed);
-    ESP_LOGI(TAG_PKT, "RPM: %d", pkt.rpm);
-    ESP_LOGI(TAG_PKT, "ODO (tenths): %u", pkt.odometerTenths);
-    ESP_LOGI(TAG_PKT, "Gear: %d", pkt.gearPosition);
-    ESP_LOGI(TAG_PKT, "FuelLevel: %d", pkt.fuelLevel);
-    ESP_LOGI(TAG_PKT, "BatteryLevel: %d", pkt.batteryLevel);
+  Serial.print("Oil Pressure: ");
+  Serial.println(pkt.oilPressure);
+  Serial.print("Fuel Pressure: ");
+  Serial.println(pkt.fuelPressure);
+  Serial.print("Boost Pressure: ");
+  Serial.println(pkt.boostPressure);
 
-    ESP_LOGI(TAG_PKT, "IA Temp: %d", pkt.iaTemp);
-    ESP_LOGI(TAG_PKT, "Oil Temp: %d", pkt.oilTemp);
-    ESP_LOGI(TAG_PKT, "Coolant Temp: %d", pkt.coolantTemp);
-    ESP_LOGI(TAG_PKT, "Trans Temp: %d", pkt.transTemp);
-    ESP_LOGI(TAG_PKT, "Ambient Temp: %d", pkt.ambientTemp);
-    ESP_LOGI(TAG_PKT, "EGT: %d", pkt.EGTemp);
+  Serial.print("Accel X: ");
+  Serial.println(pkt.accelerationX);
+  Serial.print("Accel Y: ");
+  Serial.println(pkt.accelerationY);
+  Serial.print("Accel Z: ");
+  Serial.println(pkt.accelerationZ);
 
-    ESP_LOGI(TAG_PKT, "Oil Pressure: %d", pkt.oilPressure);
-    ESP_LOGI(TAG_PKT, "Fuel Pressure: %d", pkt.fuelPressure);
-    ESP_LOGI(TAG_PKT, "Boost Pressure: %d", pkt.boostPressure);
+  Serial.print("Digital Pins: 0b");
+  Serial.println(pkt.digitalPins, BIN);
 
-    ESP_LOGI(TAG_PKT, "Accel X: %d", pkt.accelerationX);
-    ESP_LOGI(TAG_PKT, "Accel Y: %d", pkt.accelerationY);
-    ESP_LOGI(TAG_PKT, "Accel Z: %d", pkt.accelerationZ);
+  Serial.print("Cruise Active: ");
+  Serial.println(pkt.cruiseActive);
+  Serial.print("Cruise Set: ");
+  Serial.println(pkt.cruiseSetValue);
 
-    ESP_LOGI(TAG_PKT, "Digital Pins: 0x%04X", pkt.digitalPins);
+  Serial.println("--- GNSS ---");
 
-    ESP_LOGI(TAG_PKT, "Cruise Active: %u", pkt.cruiseActive);
-    ESP_LOGI(TAG_PKT, "Cruise Set: %u", pkt.cruiseSetValue);
+  Serial.printf("Date: %04u-%02u-%02u\n", pkt.year, pkt.month, pkt.day);
+  Serial.printf("Time: %02u:%02u:%02u\n", pkt.hour, pkt.minute, pkt.second);
 
-    ESP_LOGI(TAG_PKT, "--- GNSS ---");
-    ESP_LOGI(TAG_PKT, "Date: %04u-%02u-%02u", pkt.year, pkt.month, pkt.day);
-    ESP_LOGI(TAG_PKT, "Time: %02u:%02u:%02u", pkt.hour, pkt.minute, pkt.second);
+  Serial.print("Heading: ");
+  Serial.println(pkt.headingDeg / 100.0f);
 
-    ESP_LOGI(TAG_PKT, "Heading: %.2f deg", pkt.headingDeg / 100.0f);
-    ESP_LOGI(TAG_PKT, "Compass: %s", pkt.compass8);
+  Serial.print("Compass: ");
+  Serial.println(pkt.compass8);
 
-    ESP_LOGI(TAG_PKT, "------------------------");
+  Serial.println("------------------------");
 }

@@ -6,18 +6,20 @@
 // ---------------------------------------------------------
 // Feature flags
 // ---------------------------------------------------------
-#define DEBUG
+#define DEBUG 1
 #define X4
 
 // ---------------------------------------------------------
 // I2C Addresses
 // ---------------------------------------------------------
-#define I2C_ACCEL_ADR      0x68
-#define I2C_EGT_ADR        0x67
 #define I2C_ODOMETER_ADR   0x50
+#define I2C_GNSS_ADR       0x20
+#define DIG_CARD           0x27
+#define RTD_CARD           0x40
 #define ADC_CARD           0x58
-#define DIG_CARD           0x5A
-#define RTD_CARD           0x5C
+#define I2C_EGT_ADR        0x67
+#define I2C_ACCEL_ADR      0x68
+
 #define I2C_BATTERY_ADR    0x48
 
 // ---------------------------------------------------------
@@ -71,6 +73,12 @@ static const gpio_num_t SHUTDOWN  = GPIO_NUM_14;
 // ---------------------------------------------------------
 #define INT_SCALING 100
 
+// -------------------- I2C CONFIG --------------------
+#define I2C_MASTER_NUM I2C_NUM_0
+#define I2C_MASTER_SDA_IO GPIO_NUM_21
+#define I2C_MASTER_SCL_IO GPIO_NUM_22
+#define I2C_MASTER_FREQ_HZ 400000
+
 // ---------------------------------------------------------
 // External variables (defined in main or DAQ modules)
 // ---------------------------------------------------------
@@ -94,7 +102,7 @@ extern const float wheelDiameterInches;
 
 // Speed + RPM
 extern int speed;
-extern int rpm;
+extern uint16_t rpm;
 extern int gearPosition;
 
 // Fuel
@@ -120,6 +128,7 @@ extern int accelerationZ;
 
 // Power
 extern int ignitionState;
+extern int batteryLevel;
 
 // Timing
 extern uint64_t previousMillis;

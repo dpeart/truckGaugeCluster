@@ -1,15 +1,15 @@
 #pragma once
-#include <stdint.h>
-#include <stdbool.h>
-#include "sequent_i2c.h"
 
-#define RTD_CHANNEL_NR_MIN   1
-#define RTD_CHANNEL_NR_MAX   8
+#include <cstdint>
+#include <cstdbool>
+#include "driver/i2c.h"
+#include "esp_err.h"
 
-#define SLAVE_OWN_ADDRESS_BASE 0x40
+#define RTD_CHANNEL_NR_MIN      1
+#define RTD_CHANNEL_NR_MAX      8
+#define RTD_SLAVE_OWN_ADDRESS_BASE 0x40
 
-enum
-{
+enum {
     RTD_VAL1_ADD = 0,
     RTD_VAL2_ADD = RTD_VAL1_ADD + 4,
     RTD_VAL3_ADD = RTD_VAL2_ADD + 4,
@@ -45,49 +45,40 @@ enum
     RTD_RES6_ADD = RTD_RES5_ADD + 4,
     RTD_RES7_ADD = RTD_RES6_ADD + 4,
     RTD_RES8_ADD = RTD_RES7_ADD + 4,
-
-    RTD_REINIT_COUNT = RTD_RES8_ADD + 4,
-    RTD_SPS1_ADD = RTD_REINIT_COUNT + 4,
-    RTD_SPS2_ADD = RTD_SPS1_ADD + 2,
-    RTD_CARD_TYPE = RTD_SPS2_ADD + 2,
-    RTD_RASP_VOLT,
-
-    I2C_MODBUS_SETINGS_ADD = RTD_RASP_VOLT + 2,   // 5 bytes
-
-    RTD_LEDS_FUNC = I2C_MODBUS_SETINGS_ADD + 5,   // 2 bytes
-
-    RTD_LED_THRESHOLD1 = RTD_LEDS_FUNC + 2,
-    RTD_LED_THRESHOLD2 = RTD_LED_THRESHOLD1 + 2,
-    RTD_LED_THRESHOLD3 = RTD_LED_THRESHOLD2 + 2,
-    RTD_LED_THRESHOLD4 = RTD_LED_THRESHOLD3 + 2,
-    RTD_LED_THRESHOLD5 = RTD_LED_THRESHOLD4 + 2,
-    RTD_LED_THRESHOLD6 = RTD_LED_THRESHOLD5 + 2,
-    RTD_LED_THRESHOLD7 = RTD_LED_THRESHOLD6 + 2,
-    RTD_LED_THRESHOLD8 = RTD_LED_THRESHOLD7 + 2,
-
-    I2C_CALIB_RES = RTD_LED_THRESHOLD8 + 2,   // float
-    I2C_CALIB_CH  = I2C_CALIB_RES + 4,        // uint8_t
-    I2C_SENSORS_TYPE,
-    I2C_MEM_ADS_SAMPLE_SWITCH,                // uint16_t
-
 };
 
-class SM_RTD
-{
+class SM_RTD {
 public:
-    SM_RTD(uint8_t stack = 0);
+    /**
+     * @brief Construct a new SM_RTD object
+     * @param i2c_port ESP-IDF I2C port (e.g. I2C_NUM_0)
+     * @param stack Address jumper stack level [0..7]
+     */
+    SM_RTD(i2c_port_t i2c_port = I2C_NUM_0, uint8_t stack = 0);
 
     bool begin();
-    bool isAlive();
+    bool isAlive() const;
 
+    /**
+     * @brief Read channel temperature in degrees Celsius
+     * @param channel Channel number 1..8
+     * @return Temperature in °C, or -1000.0f on error
+     */
     float readTemp(uint8_t channel);
+
+    /**
+     * @brief Read channel resistance in Ohms
+     * @param channel Channel number 1..8
+     * @return Resistance in Ohms, or -1.0f on error
+     */
     float readRes(uint8_t channel);
 
 private:
+    i2c_port_t _i2c_port;
     uint8_t _hwAdd;
-    bool    _detected;
+    bool _detected;
 
-    int writeByte(uint8_t reg, uint8_t value);
-    int readByte(uint8_t reg, uint8_t *value);
-    int readFloat(uint8_t reg, float *value);
+    esp_err_t writeByte(uint8_t reg, uint8_t val);
+    esp_err_t readByte(uint8_t reg, uint8_t *val);
+    esp_err_t readFloat(uint8_t reg, float *val);
 };

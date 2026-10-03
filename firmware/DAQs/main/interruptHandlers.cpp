@@ -1,20 +1,12 @@
 #include "interruptHandlers.h"
+#include <Arduino.h>
 #include "Globals.h"
-
-#include <esp_timer.h>
-#include <driver/gpio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <math.h>
 
 extern bool DEBUG_SIMULATION_MODE;
 
+// Use your actual DAQ pin names
 #define VSS_PIN PWM_SPEED
 #define RPM_PIN PWM_TACH
-
-#ifndef PI
-#define PI 3.14159265358979323846f
-#endif
 
 // Critical section locks
 portMUX_TYPE vssMux = portMUX_INITIALIZER_UNLOCKED;
@@ -25,7 +17,7 @@ const float wheelDiameterInches = 32.5f;
 static const float vssPulsesPerRevolution = 48.0f;
 
 // RPM constants
-static const float RPM_PULSES_PER_REV = 2.0f;
+static const float RPM_PULSES_PER_REV = 2.0f;   // real Cummins crank sensor
 
 // Raw ISR counters
 volatile uint32_t vssPulseCount = 0;
@@ -45,12 +37,12 @@ volatile uint32_t vssPeriod = 0;
 // ---------------------------------------------------------
 // REAL ISR: VSS pulse timing + pulse count
 // ---------------------------------------------------------
-void IRAM_ATTR vss_isr(void* arg) {
-    uint32_t now = (uint32_t)esp_timer_get_time();
+void IRAM_ATTR vss_isr() {
+    uint32_t now = micros();
     portENTER_CRITICAL_ISR(&vssMux);
     vssPeriod = now - lastVssTime;
     lastVssTime = now;
-    vssPulseCount = vssPulseCount + 1;
+    vssPulseCount++;
     portEXIT_CRITICAL_ISR(&vssMux);
 }
 
@@ -60,10 +52,11 @@ void IRAM_ATTR vss_isr(void* arg) {
 volatile uint32_t lastPulseTime = 0;
 volatile uint32_t pulseInterval = 0;
 
-void IRAM_ATTR rpmPulseISR(void* arg) {
-    uint32_t now = (uint32_t)esp_timer_get_time();
+void IRAM_ATTR rpmPulseISR() {
+    uint32_t now = micros();
     uint32_t dt = now - lastPulseTime;
 
+    // Reject impossible RPM (<5ms → >6000 RPM)
     if (dt < 5000) return;
 
     portENTER_CRITICAL_ISR(&rpmMux);
@@ -73,42 +66,58 @@ void IRAM_ATTR rpmPulseISR(void* arg) {
 }
 
 // ---------------------------------------------------------
-// SIMULATION: RPM
+// SIMULATION: Generate synthetic RPM pulses (virtual ISR)
+// ---------------------------------------------------------
+// ---------------------------------------------------------
+// SIMULATION: Generate synthetic RPM pulses (virtual ISR)
 // ---------------------------------------------------------
 void simulateRPM() {
     static float theta = 0.0f;
     static float accumulator = 0.0f;
 
+    // Full sine wave cycle every 5 seconds (500 ticks at 10 ms)
     theta += (2.0f * PI) / 500.0f;
     if (theta > 2.0f * PI)
         theta -= 2.0f * PI;
 
-    float simRpm = 2500.0f + 2500.0f * sinf(theta);
-    if (simRpm < 50.0f) simRpm = 50.0f;
+    // Target RPM sweep: 0 → 5000 → 0
+    float simRpm = 2500.0f + 2500.0f * sinf(theta);  // center 2500, amplitude 2500
 
+    // Avoid division by zero / insane periods at exact 0 RPM
+    if (simRpm < 50.0f) {
+        simRpm = 50.0f;
+    }
+
+    // Convert target RPM to pulse timing (2 pulses per revolution)
     float secondsPerRev   = 60.0f / simRpm;
-    float secondsPerPulse = secondsPerRev / RPM_PULSES_PER_REV;
+    float secondsPerPulse = secondsPerRev / RPM_PULSES_PER_REV;  // RPM_PULSES_PER_REV = 2.0f
     float pulsesPerSec    = 1.0f / secondsPerPulse;
 
+    // rpmTask runs every 10 ms → how many pulses should occur in this tick?
     float pulsesThisTick = pulsesPerSec * 0.010f;
     accumulator += pulsesThisTick;
 
     uint32_t pulses = (uint32_t)accumulator;
     accumulator -= pulses;
 
-    if (pulses == 0) return;
+    if (pulses == 0) {
+        return;  // no pulse this tick
+    }
 
+    // Synthetic pulse interval in microseconds
     uint32_t dt_us = (uint32_t)(secondsPerPulse * 1e6f);
-    uint32_t now   = (uint32_t)esp_timer_get_time();
+    uint32_t now   = micros();
 
+    // Emulate what the real ISR would have produced
     portENTER_CRITICAL_ISR(&rpmMux);
     pulseInterval = dt_us;
     lastPulseTime = now;
     portEXIT_CRITICAL_ISR(&rpmMux);
 }
 
+
 // ---------------------------------------------------------
-// SIMULATION: VSS
+// SIMULATION: Generate synthetic VSS pulses (virtual ISR)
 // ---------------------------------------------------------
 void simulateVSS() {
     static uint32_t t = 0;
@@ -140,7 +149,7 @@ void simulateVSS() {
 }
 
 // ---------------------------------------------------------
-// VSS Task
+// VSS Task (speed + odometer) — UNCHANGED
 // ---------------------------------------------------------
 void vssTask(void *pvParameters) {
 
@@ -185,7 +194,7 @@ void vssTask(void *pvParameters) {
             odoAccumTenths += tenths;
 
             while (odoAccumTenths >= 1.0f) {
-                g_odometerTenths = g_odometerTenths + 1;
+                g_odometerTenths++;
                 odoAccumTenths -= 1.0f;
             }
         }
@@ -193,7 +202,7 @@ void vssTask(void *pvParameters) {
 }
 
 // ---------------------------------------------------------
-// RPM Task
+// RPM Task — UPDATED (pulse-period RPM)
 // ---------------------------------------------------------
 void rpmTask(void *pvParameters) {
     const TickType_t period = pdMS_TO_TICKS(10);
@@ -215,10 +224,11 @@ void rpmTask(void *pvParameters) {
 
         float rpm = 0.0f;
 
-        if ((uint32_t)esp_timer_get_time() - lastTime > 500000) {
+        // Engine stopped timeout
+        if (micros() - lastTime > 500000) {
             rpm = 0.0f;
         }
-        else if (interval >= 5000) {
+        else if (interval >= 5000) { // same noise threshold as ISR
             float secondsPerPulse = interval / 1e6f;
             float secondsPerRev = secondsPerPulse * RPM_PULSES_PER_REV;
             rpm = 60.0f / secondsPerRev;
@@ -235,21 +245,12 @@ void rpmTask(void *pvParameters) {
 // ---------------------------------------------------------
 void initInterruptHandlers() {
 
-    gpio_install_isr_service(ESP_INTR_FLAG_IRAM);
-
     if (!DEBUG_SIMULATION_MODE) {
-
-        gpio_set_direction(VSS_PIN, GPIO_MODE_INPUT);
-        gpio_set_intr_type(VSS_PIN, GPIO_INTR_POSEDGE);
-        gpio_isr_handler_add(VSS_PIN, vss_isr, NULL);
-
-        gpio_set_direction(RPM_PIN, GPIO_MODE_INPUT);
-        gpio_set_intr_type(RPM_PIN, GPIO_INTR_POSEDGE);
-        gpio_isr_handler_add(RPM_PIN, rpmPulseISR, NULL);
-
+        attachInterrupt(digitalPinToInterrupt(VSS_PIN), vss_isr, RISING);
+        attachInterrupt(digitalPinToInterrupt(RPM_PIN), rpmPulseISR, RISING);
     } else {
-        gpio_isr_handler_remove(VSS_PIN);
-        gpio_isr_handler_remove(RPM_PIN);
+        detachInterrupt(digitalPinToInterrupt(VSS_PIN));
+        detachInterrupt(digitalPinToInterrupt(RPM_PIN));
     }
 
     xTaskCreatePinnedToCore(vssTask, "VSSTask", 4096, NULL, 1, NULL, 1);
