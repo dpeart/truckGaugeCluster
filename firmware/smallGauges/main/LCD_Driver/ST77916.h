@@ -1,10 +1,5 @@
 ﻿#pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#pragma once
 #include "esp_err.h"
 #include "esp_log.h"
 #include <stdio.h>
@@ -22,6 +17,13 @@ extern "C" {
 #include "esp_lcd_panel_vendor.h"
 #include "lvgl.h"
 #include "driver/ledc.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#pragma once
+
 
 #include "esp_lcd_st77916.h"
 #include "CST816.h"

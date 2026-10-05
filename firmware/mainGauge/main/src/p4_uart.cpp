@@ -6,8 +6,6 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-// #include "GaugePacket.h"
-#include "p4_telemetry.h"
 #include "p4_ota.h"
 #include "esp_ota_ops.h"
 #include "ui_actions.h"
@@ -111,7 +109,7 @@ static void handle_command(uint8_t cmd, uint8_t *payload, uint16_t len)
         }
 
         // Feed the raw bytes (ID + payload) straight into the native VCAN receiver
-        vcan_receiver_process_frame(payload, len);
+        vcan::Receiver::instance().processFrame(payload, len);
 
         break;
     }

@@ -1,42 +1,51 @@
-#pragma once
+#ifndef VCAN_SENDER_H
+#define VCAN_SENDER_H
 
-#include <stdint.h>
 #include "esp_err.h"
+#include "vcan_protocol.h"
+#include <mutex>
+#include <cstdint>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace vcan
+{
 
-// Virtual CAN Frame Structure (Mirrors an 8-byte CAN frame + 29-bit ID)
-typedef struct __attribute__((packed)) {
-    uint32_t id;       // 29-bit Extended ID: Priority(3) + PGN(16) + Src(8) (simplified)
-    uint8_t  len;      // Payload length (0 to 8 bytes)
-    uint8_t  data[8];  // Raw payload bytes (wire-format: little-endian)
-} virtual_can_msg_t;
+    class Sender
+    {
+    public:
+        static Sender &instance();
 
-// Core Transmitter API
-esp_err_t vcan_init_transmitter(void);
-esp_err_t vcan_send_message(uint16_t pgn, uint8_t src_addr, uint8_t priority, const uint8_t *payload, uint8_t len);
+        esp_err_t init();
 
-// Convenience DAQ Sender Wrappers (pack fields into deterministic LE wire format)
-esp_err_t vcan_send_engine_core(int16_t rpm, int16_t speed, int16_t gear_position, int16_t coolant_temp);
-esp_err_t vcan_send_pressures(int16_t oil_pressure, int16_t fuel_pressure, int16_t boost_pressure, int16_t battery_level);
-esp_err_t vcan_send_temps(int16_t oil_temp, int16_t trans_temp, int16_t ambient_temp, int16_t ia_temp);
-esp_err_t vcan_send_exhaust_dig(int32_t eg_temp, int16_t fuel_level, uint16_t digital_pins);
-esp_err_t vcan_send_imu_dynamics(int16_t accel_x, int16_t accel_y, int16_t accel_z);
-esp_err_t vcan_send_cruise_odo(uint16_t cruise_active, uint16_t cruise_set_value, uint32_t odometer_tenths);
-esp_err_t vcan_send_gps_position(int32_t lat, int32_t lon);
-esp_err_t vcan_send_gps_motion(uint32_t gps_speed, uint16_t gps_altitude, int16_t heading_deg);
-esp_err_t vcan_send_gps_status(uint8_t gps_fix, uint8_t gps_sat_count, const char compass4[4]);
-esp_err_t vcan_send_gnss_time(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
-esp_err_t vcan_send_digital_inputs(uint16_t digital_pins);
+        esp_err_t sendRawPayload(uint16_t pgn, uint8_t src_addr, uint8_t priority, const void *payload, uint8_t len);
 
-// Heartbeat / sequence
-esp_err_t vcan_send_heartbeat(uint8_t seq, uint32_t uptime_ms);
+        // Overloads using clean pgn_*_t types
+        // Inside vcan_sender.h in class Sender:
 
-// Receiver helpers (implement in receiver module)
-void vcan_parse_msg(const virtual_can_msg_t *msg); // prototype for receiver-side parser
+        esp_err_t send(const pgn_heartbeat_t &msg) { return sendRawPayload(PGN_HEARTBEAT, 0x00, CAN_PRIORITY_HIGH, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_engine_core_t &msg) { return sendRawPayload(PGN_ENGINE_CORE, 0x00, CAN_PRIORITY_HIGH, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_pressures_t &msg) { return sendRawPayload(PGN_PRESSURES, 0x00, CAN_PRIORITY_HIGH, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_temps_t &msg) { return sendRawPayload(PGN_TEMPS, 0x00, CAN_PRIORITY_MED, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_exhaust_dig_t &msg) { return sendRawPayload(PGN_EXHAUST_DIG, 0x00, CAN_PRIORITY_MED, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_cruise_odo_t &msg) { return sendRawPayload(PGN_CRUISE_ODO, 0x00, CAN_PRIORITY_LOW, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_gps_pos_t &msg) { return sendRawPayload(PGN_GPS_POS, 0x00, CAN_PRIORITY_MED, &msg, sizeof(msg)); }
 
-#ifdef __cplusplus
-}
-#endif
+        // Add this missing line:
+        esp_err_t send(const pgn_gps_motion_t &msg) { return sendRawPayload(PGN_GPS_MOTION, 0x00, CAN_PRIORITY_MED, &msg, sizeof(msg)); }
+
+        esp_err_t send(const pgn_gps_status_t &msg) { return sendRawPayload(PGN_GPS_STATUS, 0x00, CAN_PRIORITY_LOW, &msg, sizeof(msg)); }
+        esp_err_t send(const pgn_gnss_time_t &msg) { return sendRawPayload(PGN_GNSS_TIME, 0x00, CAN_PRIORITY_HIGH, &msg, sizeof(msg)); }
+
+    private:
+        Sender() = default;
+        ~Sender() = default;
+
+        Sender(const Sender &) = delete;
+        Sender &operator=(const Sender &) = delete;
+
+        std::mutex mutex_;
+        bool initialized_ = false;
+    };
+
+} // namespace vcan
+
+#endif // VCAN_SENDER_H

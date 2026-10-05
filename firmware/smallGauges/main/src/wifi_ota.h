@@ -3,6 +3,10 @@
 #include <stdbool.h>
 #include "esp_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     APP_WIFI_STATE_INIT,
     APP_WIFI_STATE_ESP_NOW_ONLY,
@@ -21,3 +25,7 @@ void exit_ota_mode(void);
 app_wifi_state_t get_wifi_state(void);
 const char* wifi_state_to_str(app_wifi_state_t state);
 void get_wifi_ip_str(char *buf, size_t len);
+
+#ifdef __cplusplus
+}
+#endif

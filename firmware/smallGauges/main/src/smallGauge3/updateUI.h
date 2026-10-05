@@ -6,6 +6,10 @@
 #include "screens.h"
 #include "GaugePacket.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define UPDATE_THRESHOLD 1
 
 #define INT_SCALING 100
@@ -16,5 +20,9 @@ void update_fuel_pressure_meter(int32_t new_val);
 
 // High-level entry point for gauge_task
 void gauge_ui_update(bool is_stale);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // UPDATE_UI_H

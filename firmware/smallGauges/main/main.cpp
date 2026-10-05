@@ -1,4 +1,3 @@
-// #define DEBUG 1       // unused; esp-idf logging levels are configured via menuconfig
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
@@ -9,11 +8,10 @@
 #include "driver/gpio.h"
 
 #include "ota_handler.h"
-#include "ST77916.h"  // LCD driver
-#include "PCF85063.h" // RTC
-#include "QMI8658.h"  // IMU
-// #include "SD_MMC.h"   // (optional, init commented out)
-#include "Wireless.h" // radio code
+#include "ST77916.h"
+#include "PCF85063.h"
+#include "QMI8658.h"
+#include "Wireless.h"
 #include "TCA9554PWR.h"
 #include "BAT_Driver.h"
 #include "PWR_Key.h"
@@ -23,28 +21,29 @@
 #include "lvgl.h"
 #include "LVGL_Driver.h"
 
-// UI + app headers
 #include "sdkconfig.h"
-
 #include "ui.h"
 #include "updateUI.h"
-// #include "GaugePacket.h"
 #include "espnow_receiver.h"
 #include "lvgl_lock.h"
 #include "wifi_ota.h"
 
+// C++ VCAN Receiver Header
 #include "vcan_receiver.h"
 #include "small_gauge.h"
 
 #define CONFIG_ESPNOW_CHANNEL 1
 #define LVGL_BUF_LEN (EXAMPLE_LCD_WIDTH * EXAMPLE_LCD_HEIGHT)
 
-// These are the actual definitions
 volatile bool ui_ready = false;
 volatile bool lvgl_started = false;
 
 static const char *TAG = "MAIN";
 #define ONBOARD_LED_GPIO 2
+
+// Define stringification helpers
+#define STRINGIFY(x) #x
+#define TOSTRING(x)  STRINGIFY(x)
 
 static void lvgl_task(void *arg)
 {
@@ -61,8 +60,6 @@ static void lvgl_task(void *arg)
             ui_ready = true;
             lvgl_started = true;
 
-            // *** Long-press OTA toggle removed ***
-
             first = false;
             ESP_LOGI("LVGL", "UI ready");
         }
@@ -73,15 +70,10 @@ static void lvgl_task(void *arg)
     }
 }
 
-// ------------------------------------------------------------
-// Gauge Update Task (Core 1)
-// ------------------------------------------------------------
-
 void gauge_task(void *arg)
 {
     bool was_stale = false;
 
-    // Wait for UI initialization
     while (!ui_ready || !lvgl_started)
     {
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -89,15 +81,14 @@ void gauge_task(void *arg)
 
     while (1)
     {
-        // OTA mode gating
         if (get_wifi_state() != APP_WIFI_STATE_ESP_NOW_ONLY)
         {
             vTaskDelay(pdMS_TO_TICKS(500));
             continue;
         }
 
-        // 1. Stale link detection for ALL gauge variants (2000 ms timeout)
-        bool is_stale = vcan_receiver_is_stale(2000);
+        // Direct C++ Singleton Call
+        bool is_stale = vcan::Receiver::instance().isStale(2000);
         if (is_stale != was_stale)
         {
             if (is_stale)
@@ -107,12 +98,11 @@ void gauge_task(void *arg)
             was_stale = is_stale;
         }
 
-        // 2. Lock LVGL and dispatch per-gauge draws (per-gauge modules read their own state)
         lvgl_lock();
         gauge_ui_update(is_stale);
         lvgl_unlock();
 
-        vTaskDelay(pdMS_TO_TICKS(16)); // ~60 FPS update rate
+        vTaskDelay(pdMS_TO_TICKS(16));
     }
 }
 
@@ -132,46 +122,20 @@ void monitor_task(void *arg)
     }
 }
 
-// void Driver_Loop(void *parameter)
-// {
-//     while (1)
-//     {
-//         // QMI8658_Loop();
-//         // PCF85063_Loop();
-//         // BAT_Get_Volts();
-//         // PWR_Loop();
-//         vTaskDelay(pdMS_TO_TICKS(100));
-//     }
-// }
-
 void Driver_Init(void)
 {
-    // PWR_Init();
-    // BAT_Init();
     I2C_Init();
     EXIO_Init();
-    // PCF85063_Init();
-    // QMI8658_Init();
-
-    // xTaskCreatePinnedToCore(
-    //     Driver_Loop,
-    //     "Driver Loop",
-    //     4096,
-    //     NULL,
-    //     3,
-    //     NULL,
-    //     0);
 }
 
-void app_main(void)
+extern "C" void app_main(void)
 {
-    esp_log_level_set("*", ESP_LOG_NONE); // global: disable all logging
-
-    esp_log_level_set("*", ESP_LOG_DEBUG); // global: enable DEBUG for all tags
-    // or per-module:
-    esp_log_level_set("small_gauge", ESP_LOG_VERBOSE);
-    esp_log_level_set("updateUI", ESP_LOG_DEBUG);
-    esp_log_level_set("VCAN_RX", ESP_LOG_NONE);
+    esp_log_level_set("*", ESP_LOG_NONE);
+    esp_log_level_set("*", ESP_LOG_INFO);
+    esp_log_level_set("small_gauge", ESP_LOG_INFO);
+    esp_log_level_set("updateUI", ESP_LOG_NONE);
+    esp_log_level_set("UI", ESP_LOG_INFO);
+    esp_log_level_set("VCAN_RX", ESP_LOG_INFO);
     ESP_LOGI(TAG, "Starting Truck Gauge Cluster");
 
     esp_err_t ret = nvs_flash_init();
@@ -191,17 +155,15 @@ void app_main(void)
     }
 
     network_setup();
-
     init_wifi_state_machine();
-
     Driver_Init();
+
+    ESP_LOGI(TAG, "Provisioning SSID: %s | Hostname: %s", TOSTRING(APP_PROJECT_NAME), TOSTRING(APP_PROJECT_NAME));
 
     LCD_Init();
     Set_Backlight(100);
-
     LVGL_Init();
 
-    // Bind the hardware instantiation handle to the active LVGL driver mapping
     if (disp != NULL && disp->driver != NULL)
     {
         disp->driver->user_data = panel_handle;
@@ -218,11 +180,12 @@ void app_main(void)
         NULL,
         1);
 
-    // --- Replace global GaugePacket init with vcan + per-gauge init ---
-    // gauge_state_init();   // removed: no longer needed when using per-gauge subscriptions
     espnow_receiver_init(1);
-    vcan_receiver_init(); // start vcan receiver worker and subscription system
-    small_gauge_init();   // register callbacks and prime small_gauge state
+    
+    // Direct C++ Singleton Initialization
+    vcan::Receiver::instance().init();
+    
+    small_gauge_init();
 
     xTaskCreatePinnedToCore(
         gauge_task,

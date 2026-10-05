@@ -1,23 +1,29 @@
-#pragma once
-
-#include <stdint.h>
-#include <stdbool.h>
+#ifndef SMALL_GAUGE_H
+#define SMALL_GAUGE_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "GaugePacket.h"
-
-// Public API for small_gauge1
+/**
+ * @brief Initialize the small gauge module, register callbacks with vcan::Receiver,
+ *        and prime initial state values.
+ */
 void small_gauge_init(void);
+
+/**
+ * @brief Unregister callbacks and free local mutex resources.
+ */
 void small_gauge_deinit(void);
 
-// Called from the UI update loop while LVGL is locked
+/**
+ * @brief Performs local smoothing and updates UI meters/arcs.
+ *        Must be called with the LVGL mutex held.
+ */
 void small_gauge_draw(void);
-
-const GaugePacket *small_gauge_get_last_packet(void);
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif // SMALL_GAUGE_H

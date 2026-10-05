@@ -1,11 +1,11 @@
 # Standard shared sources
 set(srcs
-    "main.c"
+    "main.cpp"
     "ota_handler.c"
 
     # Shared application logic
     # "src/GaugePacket.c"
-    "src/espnow_receiver.c"
+    "src/espnow_receiver.cpp"
     "src/lvgl_lock.c"
     "src/ui_actions.c"
     "src/wifi_ota.c"
@@ -69,7 +69,7 @@ if(GAUGE_VARIANT EQUAL 1)
 
     list(APPEND srcs
         "src/smallGauge1/updateUI.c"
-        "src/smallGauge1/small_gauge.c"
+        "src/smallGauge1/small_gauge.cpp"
         "src/smallGauge1/ui/images.c"
         "src/smallGauge1/ui/screens.c"
         "src/smallGauge1/ui/styles.c"
@@ -91,7 +91,7 @@ elseif(GAUGE_VARIANT EQUAL 2)
 
     list(APPEND srcs
         "src/smallGauge2/updateUI.c"
-        "src/smallGauge2/small_gauge.c"
+        "src/smallGauge2/small_gauge.cpp"
         "src/smallGauge2/ui/images.c"
         "src/smallGauge2/ui/screens.c"
         "src/smallGauge2/ui/styles.c"
@@ -112,7 +112,7 @@ elseif(GAUGE_VARIANT EQUAL 3)
 
     list(APPEND srcs
         "src/smallGauge3/updateUI.c"
-        "src/smallGauge3/small_gauge.c"
+        "src/smallGauge3/small_gauge.cpp"
         "src/smallGauge3/ui/images.c"
         "src/smallGauge3/ui/screens.c"
         "src/smallGauge3/ui/styles.c"
@@ -132,7 +132,7 @@ elseif(GAUGE_VARIANT EQUAL 4)
 
     list(APPEND srcs
         "src/smallGauge4/updateUI.c"
-        "src/smallGauge4/small_gauge.c"
+        "src/smallGauge4/small_gauge.cpp"
         "src/smallGauge4/ui/images.c"
         "src/smallGauge4/ui/screens.c"
         "src/smallGauge4/ui/styles.c"
@@ -150,7 +150,7 @@ elseif(GAUGE_VARIANT EQUAL 5)
 
     list(APPEND srcs
         "src/smallGauge5/updateUI.c"
-        "src/smallGauge5/small_gauge.c"
+        "src/smallGauge5/small_gauge.cpp"
         "src/smallGauge5/ui/images.c"
         "src/smallGauge5/ui/screens.c"
         "src/smallGauge5/ui/styles.c"

@@ -94,18 +94,10 @@ dependencies:
       type: service
     version: 1.2.1
   espressif/esp_lvgl_port:
-    component_hash: d3c020b45c3dfc0d1706a83b63a1c34a6eb444a6e935f9afff79f92b7b94dcef
-    dependencies:
-    - name: idf
-      require: private
-      version: '>=5.2'
-    - name: lvgl/lvgl
-      registry_url: https://components.espressif.com
-      require: public
-      version: '>=8,<10'
+    dependencies: []
     source:
-      registry_url: https://components.espressif.com/
-      type: service
+      path: C:\Users\davep\espf-projects\truckGaugeCluster\firmware\mainGauge\components\espressif__esp_lvgl_port
+      type: local
     version: 2.9.0
   idf:
     source:
@@ -158,10 +150,9 @@ direct_dependencies:
 - espressif/esp_lcd_jd9365
 - espressif/esp_lcd_touch
 - espressif/esp_lcd_touch_gt911
-- espressif/esp_lvgl_port
 - idf
 - lvgl/lvgl
 - waveshare/esp32_p4_wifi6_touch_lcd_xc
-manifest_hash: a9433fd1b2f71ee7b5bd8546adc6fb0df778b9d2d69ba0574f67c2babc940862
+manifest_hash: df02724332d58b8b84dffc2f80bf7ac2ecc6186d4a47fd6d01f1bbef1895180e
 target: esp32p4
 version: 2.0.0

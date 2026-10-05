@@ -153,7 +153,7 @@ void create_screen_main() {
             objects.battery = obj;
             lv_obj_set_pos(obj, 0, 0);
             lv_obj_set_size(obj, 360, 360);
-            lv_arc_set_range(obj, 0, 16);
+            lv_arc_set_range(obj, 100, 160);
             lv_arc_set_value(obj, 6);
             lv_arc_set_mode(obj, LV_ARC_MODE_REVERSE);
             lv_arc_set_bg_start_angle(obj, 65);

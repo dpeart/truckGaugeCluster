@@ -40,6 +40,7 @@ static void setup_mdns(void)
     }
     mdns_hostname_set(HOSTNAME);
     mdns_instance_name_set(HOSTNAME);
+    ESP_LOGI(TAG, "mDNS initialized as %s.local", HOSTNAME);
 }
 
 static void start_webserver(void)
@@ -54,6 +55,11 @@ static void start_webserver(void)
         {
             register_ota_handler(server);
             setup_mdns();
+            ESP_LOGI(TAG, "HTTP OTA Webserver started successfully");
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to start HTTP OTA Webserver");
         }
     }
 }
@@ -172,7 +178,7 @@ void set_wifi_mode(app_wifi_state_t new_state)
         esp_wifi_start();
         esp_wifi_connect();
         esp_wifi_set_ps(WIFI_PS_NONE);
-        start_webserver();
+        // Note: start_webserver() is called in IP_EVENT_STA_GOT_IP
         break;
 
     default:
@@ -204,8 +210,26 @@ void enter_ota_mode(void)
 {
     g_ota_mode_enabled = true;
 
+    wifi_prov_mgr_config_t config = {
+        .scheme = wifi_prov_scheme_softap,
+        .scheme_event_handler = WIFI_PROV_EVENT_HANDLER_NONE};
+
+    if (!s_prov_mgr_initialized)
+    {
+        if (wifi_prov_mgr_init(config) == ESP_OK)
+        {
+            s_prov_mgr_initialized = true;
+        }
+    }
+
     bool provisioned = false;
     wifi_prov_mgr_is_provisioned(&provisioned);
+
+    if (s_prov_mgr_initialized)
+    {
+        wifi_prov_mgr_deinit();
+        s_prov_mgr_initialized = false;
+    }
 
     if (!provisioned)
     {

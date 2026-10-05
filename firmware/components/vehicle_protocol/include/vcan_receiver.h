@@ -1,39 +1,75 @@
-#pragma once
+#ifndef VCAN_RECEIVER_H
+#define VCAN_RECEIVER_H
 
-#include <stdint.h>
-#include <stdbool.h>
 #include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
+#include <mutex>
+#include <vector>
+#include <functional>
+#include <array>
+#include <cstdint>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace vcan {
 
-// Callback invoked when a PGN payload arrives.
-// pgn: PGN number, src: source address, payload: pointer to payload bytes, len: payload length, user_ctx: user pointer
-typedef void (*vcan_pgn_callback_t)(uint16_t pgn, uint8_t src, const uint8_t *payload, uint8_t len, void *user_ctx);
+constexpr size_t VCAN_EVENT_QUEUE_LEN = 32;
 
-// Initialize receiver (call once). Returns ESP_OK on success.
-esp_err_t vcan_receiver_init(void);
+using PgnCallback = std::function<void(uint16_t pgn, const uint8_t *data, uint8_t len)>;
 
-// Process a single incoming frame buffer (call from esp_now RX callback).
-// Wire format expected: id (4 bytes little-endian) | len (1 byte) | payload (len bytes).
-esp_err_t vcan_receiver_process_frame(const uint8_t *buf, size_t buf_len);
+struct Event {
+    uint16_t pgn;
+    uint8_t len;
+    std::array<uint8_t, 256> data;
+};
 
-// Register/unregister callbacks for a PGN. Multiple callbacks allowed.
-// Returns ESP_OK on success.
-esp_err_t vcan_receiver_register_pgn(uint16_t pgn, vcan_pgn_callback_t cb, void *user_ctx);
-esp_err_t vcan_receiver_unregister_pgn(uint16_t pgn, vcan_pgn_callback_t cb, void *user_ctx);
+struct TrackedPgn {
+    uint16_t pgn;
+    uint8_t len;
+    std::array<uint8_t, 256> data;
+    uint32_t last_seen_ms;
+};
 
-// Get last payload for a PGN. out_buf must have space for 8 bytes.
-// Returns ESP_OK and sets *out_len and *last_seen_ms if found, ESP_ERR_NOT_FOUND otherwise.
-esp_err_t vcan_receiver_get_last_payload(uint16_t pgn, uint8_t *out_buf, uint8_t *out_len, uint32_t *last_seen_ms);
+struct Subscription {
+    uint16_t pgn;
+    PgnCallback callback;
+};
 
-// Check whether the feed is stale (no heartbeat within timeout_ms).
-bool vcan_receiver_is_stale(uint32_t timeout_ms);
+class Receiver {
+public:
+    static Receiver& instance();
 
-// Reset receiver state (clears tracked PGNs and subscriptions)
-void vcan_receiver_reset(void);
+    esp_err_t init();
+    esp_err_t processFrame(const uint8_t *buf, size_t buf_len);
+    esp_err_t dispatch(uint32_t id, const uint8_t *payload, uint8_t payload_len);
+    esp_err_t registerCallback(uint16_t pgn, PgnCallback cb);
+    esp_err_t getLastPayload(uint16_t pgn, uint8_t *out_buf, uint8_t *out_len, uint32_t *last_seen_ms);
+    bool isStale(uint32_t timeout_ms) const;
+    void reset();
 
-#ifdef __cplusplus
-}
-#endif
+private:
+    Receiver() = default;
+    ~Receiver() = default;
+
+    Receiver(const Receiver&) = delete;
+    Receiver& operator=(const Receiver&) = delete;
+
+    static void workerTaskStub(void *arg);
+    void workerTask();
+    void updateTracked(uint16_t pgn, const uint8_t *payload, uint8_t len);
+
+    mutable std::mutex mutex_;
+    bool initialized_ = false;
+    QueueHandle_t event_queue_ = nullptr;
+    TaskHandle_t worker_task_ = nullptr;
+
+    std::vector<Subscription> subscriptions_;
+    std::vector<TrackedPgn> tracked_pgns_;
+
+    uint8_t last_heartbeat_seq_ = 0xFF;
+    uint32_t last_heartbeat_ms_ = 0;
+};
+
+} // namespace vcan
+
+#endif // VCAN_RECEIVER_H

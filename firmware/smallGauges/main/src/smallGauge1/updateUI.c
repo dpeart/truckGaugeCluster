@@ -1,24 +1,16 @@
-// updateUI.c
 #include "updateUI.h"
-#include "small_gauge.h" // per-gauge module(s)
+#include "small_gauge.h"
+#include "lvgl.h"
+#include "ui.h"
 #include <math.h>
-#include "lvgl.h" // ensure LVGL types are available for update helpers
-#include "ui.h"   // your objects/screen state headers (adjust to your project)
+#include <stdlib.h>
 
-// Helper for Linear Interpolation (kept for any local use)
-static inline float lerp(float a, float b, float f)
-{
-    return a + f * (b - a);
-}
-
-// Static state tracking used by the LVGL update helpers
 static int32_t cached_coolant = -999;
 static int32_t cached_oil = -999;
 static int32_t cached_fuel = -999;
 
 void update_coolant_meter(int32_t new_val)
 {
-    // If UPDATE_THRESHOLD is in scaled units (e.g., 100 = 1°F change required to redraw)
     if (abs(new_val - cached_coolant) > UPDATE_THRESHOLD)
     {
         int32_t display_val = new_val / INT_SCALING; // e.g., 7243 / 100 = 72°F
@@ -27,11 +19,9 @@ void update_coolant_meter(int32_t new_val)
     }
 }
 
-// updateUI.c
 void update_oil_pressure_meter(int32_t new_val)
 {
-    // Scale down from high-precision backend (e.g. 4500 -> 45 PSI) with rounding
-    int32_t display_val = (new_val + 50) / 100;
+    int32_t display_val = (new_val + 50) / 100; // e.g., 4500 -> 45 PSI
 
     if (abs(display_val - cached_oil) > UPDATE_THRESHOLD)
     {
@@ -42,8 +32,7 @@ void update_oil_pressure_meter(int32_t new_val)
 
 void update_fuel_arc(int32_t new_val)
 {
-    // Scale down from high-precision backend range (0-10000) to LVGL arc range (0-100) with rounding
-    int32_t display_val = (new_val + 50) / 100;
+    int32_t display_val = (new_val + 50) / 100; // e.g., 0-10000 -> 0-100 %
 
     if (abs(display_val - cached_fuel) > UPDATE_THRESHOLD)
     {
@@ -52,13 +41,8 @@ void update_fuel_arc(int32_t new_val)
     }
 }
 
-// Single entry point called by gauge_task
-// Per-gauge modules perform smoothing and read their own subscribed state.
 void gauge_ui_update(bool is_stale)
 {
-    (void)is_stale; // keep parameter for global stale handling if desired
-
-    // Call per-gauge draw functions while LVGL is locked by the caller.
-    // Each gauge module performs its own smoothing and calls the update_* helpers above.
+    (void)is_stale;
     small_gauge_draw();
 }

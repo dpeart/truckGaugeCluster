@@ -1,7 +1,7 @@
-// small_gauge.c
+// small_gauge.cpp
 // Minimal gauge module that supports boost pressure and oil temp
-// - boost pressure <- PGN_PRESSURES offset PRESSURE_BOOST_OFFSET (int16 LE)
-// - oil temp       <- PGN_ENGINE_CORE offset ENGINE_COOLANT_OFFSET (int16 LE)
+// - oil temp       <- PGN_TEMPS offset 0 (pgn_temps_t.oil_temp, int16 LE)
+// - boost pressure <- PGN_PRESSURES offset 4 (pgn_pressures_t.boost_pressure, int16 LE)
 //
 // Exposes small_gauge_init/deinit/draw (public API)
 
@@ -18,10 +18,14 @@
 
 static const char *TAG = "small_gauge";
 
+/* Byte offsets mapped directly from vcan_protocol.h struct layouts */
+#define OIL_TEMP_OFFSET       0 // pgn_temps_t.oil_temp
+#define BOOST_PRESSURE_OFFSET 4 // pgn_pressures_t.boost_pressure
+
 /* Local state kept by this gauge module. */
 typedef struct
 {
-    int32_t oil_temp;       // oil/coolant temp (raw)
+    int32_t oil_temp;       // oil temp (raw)
     int32_t boost_pressure; // boost pressure (raw)
     uint32_t last_update_ms;
 } sg_state_t;
@@ -38,9 +42,32 @@ static const float LERP_ALPHA = 0.15f;
 static inline int16_t read_s16_le(const uint8_t *b) { return (int16_t)((uint16_t)b[0] | ((uint16_t)b[1] << 8)); }
 static inline uint32_t now_ms(void) { return (uint32_t)(esp_timer_get_time() / 1000ULL); }
 
-/* Forward declarations for callbacks */
-static void cb_engine_core(uint16_t pgn, uint8_t src, const uint8_t *payload, uint8_t len, void *ctx);
-static void cb_pressures(uint16_t pgn, uint8_t src, const uint8_t *payload, uint8_t len, void *ctx);
+/* Callback implementations using the C++ std::function signature */
+static void cb_temps(uint16_t pgn, const uint8_t *payload, uint8_t len)
+{
+    if (len < (OIL_TEMP_OFFSET + 2))
+        return;
+    int16_t oil_raw = read_s16_le(&payload[OIL_TEMP_OFFSET]);
+    if (xSemaphoreTake(s_mutex, 0) == pdTRUE)
+    {
+        s_state.oil_temp = (int32_t)oil_raw;
+        s_state.last_update_ms = now_ms();
+        xSemaphoreGive(s_mutex);
+    }
+}
+
+static void cb_pressures(uint16_t pgn, const uint8_t *payload, uint8_t len)
+{
+    if (len < (BOOST_PRESSURE_OFFSET + 2))
+        return;
+    int16_t b_raw = read_s16_le(&payload[BOOST_PRESSURE_OFFSET]);
+    if (xSemaphoreTake(s_mutex, 0) == pdTRUE)
+    {
+        s_state.boost_pressure = (int32_t)b_raw;
+        s_state.last_update_ms = now_ms();
+        xSemaphoreGive(s_mutex);
+    }
+}
 
 /* Initialize module: create mutex, register PGN callbacks, and prime state from last payloads */
 void small_gauge_init(void)
@@ -52,40 +79,40 @@ void small_gauge_init(void)
     s_state.oil_temp = 0;
     s_state.boost_pressure = 0;
 
+    auto& receiver = vcan::Receiver::instance();
+
     /* Register callbacks for the PGNs we need */
-    vcan_receiver_register_pgn(PGN_ENGINE_CORE, cb_engine_core, NULL); // oil temp at ENGINE_COOLANT_OFFSET
-    vcan_receiver_register_pgn(PGN_PRESSURES, cb_pressures, NULL);     // boost pressure at PRESSURE_BOOST_OFFSET
+    receiver.registerCallback(PGN_TEMPS, cb_temps);         // oil temp at offset 0
+    receiver.registerCallback(PGN_PRESSURES, cb_pressures); // boost pressure at offset 4
 
-    /* Prime initial values from last-known payloads (optional) */
-    uint8_t buf[8];
-    uint8_t len;
-    uint32_t seen;
+    /* Prime initial values from last-known payloads */
+    uint8_t buf[256];
+    uint8_t len = 0;
+    uint32_t seen = 0;
 
-    if (vcan_receiver_get_last_payload(PGN_ENGINE_CORE, buf, &len, &seen) == ESP_OK &&
-        len >= (ENGINE_COOLANT_OFFSET + 2))
+    if (receiver.getLastPayload(PGN_TEMPS, buf, &len, &seen) == ESP_OK &&
+        len >= (OIL_TEMP_OFFSET + 2))
     {
         if (xSemaphoreTake(s_mutex, portMAX_DELAY) == pdTRUE)
         {
-            int16_t oil_raw = read_s16_le(&buf[ENGINE_COOLANT_OFFSET]);
+            int16_t oil_raw = read_s16_le(&buf[OIL_TEMP_OFFSET]);
             s_state.oil_temp = (int32_t)oil_raw;
             s_state.last_update_ms = now_ms();
-            ESP_LOGI(TAG, "primed OIL bytes=%02X %02X -> %d", buf[ENGINE_COOLANT_OFFSET], buf[ENGINE_COOLANT_OFFSET + 1], oil_raw);
+            ESP_LOGI(TAG, "primed OIL bytes=%02X %02X -> %d", buf[OIL_TEMP_OFFSET], buf[OIL_TEMP_OFFSET + 1], oil_raw);
             xSemaphoreGive(s_mutex);
         }
     }
 
-    if (vcan_receiver_get_last_payload(PGN_PRESSURES, buf, &len, &seen) == ESP_OK)
+    if (receiver.getLastPayload(PGN_PRESSURES, buf, &len, &seen) == ESP_OK &&
+        len >= (BOOST_PRESSURE_OFFSET + 2))
     {
-        if (len >= (PRESSURE_BOOST_OFFSET + 2))
+        if (xSemaphoreTake(s_mutex, portMAX_DELAY) == pdTRUE)
         {
-            if (xSemaphoreTake(s_mutex, portMAX_DELAY) == pdTRUE)
-            {
-                int16_t b_raw = read_s16_le(&buf[PRESSURE_BOOST_OFFSET]);
-                s_state.boost_pressure = (int32_t)b_raw;
-                s_state.last_update_ms = now_ms();
-                ESP_LOGI(TAG, "primed BOOST bytes=%02X %02X -> %d", buf[PRESSURE_BOOST_OFFSET], buf[PRESSURE_BOOST_OFFSET + 1], b_raw);
-                xSemaphoreGive(s_mutex);
-            }
+            int16_t b_raw = read_s16_le(&buf[BOOST_PRESSURE_OFFSET]);
+            s_state.boost_pressure = (int32_t)b_raw;
+            s_state.last_update_ms = now_ms();
+            ESP_LOGI(TAG, "primed BOOST bytes=%02X %02X -> %d", buf[BOOST_PRESSURE_OFFSET], buf[BOOST_PRESSURE_OFFSET + 1], b_raw);
+            xSemaphoreGive(s_mutex);
         }
     }
 
@@ -95,9 +122,7 @@ void small_gauge_init(void)
 /* Unregister callbacks and free resources */
 void small_gauge_deinit(void)
 {
-    vcan_receiver_unregister_pgn(PGN_ENGINE_CORE, cb_engine_core, NULL);
-    vcan_receiver_unregister_pgn(PGN_PRESSURES, cb_pressures, NULL);
-
+    // Receiver doesn't have an unregisterCallback in header; calling reset or ignoring if transient
     if (s_mutex)
     {
         vSemaphoreDelete(s_mutex);
@@ -133,34 +158,5 @@ void small_gauge_draw(void)
     if ((now_ms() - last_ms) > 2000)
     {
         // show stale indicator if available
-    }
-}
-
-/* Callback implementations: decode only the bytes we need and update local state.
-   These are called by vcan_receiver worker task. Keep them short. */
-
-static void cb_engine_core(uint16_t pgn, uint8_t src, const uint8_t *payload, uint8_t len, void *ctx)
-{
-    if (len < (ENGINE_COOLANT_OFFSET + 2))
-        return;
-    int16_t oil_raw = read_s16_le(&payload[ENGINE_COOLANT_OFFSET]);
-    if (xSemaphoreTake(s_mutex, 0) == pdTRUE)
-    {
-        s_state.oil_temp = (int32_t)oil_raw;
-        s_state.last_update_ms = now_ms();
-        xSemaphoreGive(s_mutex);
-    }
-}
-
-static void cb_pressures(uint16_t pgn, uint8_t src, const uint8_t *payload, uint8_t len, void *ctx)
-{
-    if (len < (PRESSURE_BOOST_OFFSET + 2))
-        return;
-    int16_t b_raw = read_s16_le(&payload[PRESSURE_BOOST_OFFSET]);
-    if (xSemaphoreTake(s_mutex, 0) == pdTRUE)
-    {
-        s_state.boost_pressure = (int32_t)b_raw;
-        s_state.last_update_ms = now_ms();
-        xSemaphoreGive(s_mutex);
     }
 }

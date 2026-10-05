@@ -78,7 +78,7 @@ void runLVGLTask(void *arg)
     for (;;)
     {
         // Check if the VCAN data feed is stale (e.g., no heartbeat for 2000ms)[cite: 20]
-        bool is_stale = vcan_receiver_is_stale(2000);
+        bool is_stale = vcan::Receiver::instance().isStale(2000);
 
         // Lock LVGL for thread-safe rendering
         bsp_display_lock(-1); // or lvgl_port_lock(-1) depending on your BSP setup
@@ -103,10 +103,11 @@ void runLVGLTask(void *arg)
 extern "C" void app_main(void)
 {
     // Disable messaging
-    esp_log_level_set("*", ESP_LOG_VERBOSE);
+    esp_log_level_set("*", ESP_LOG_NONE);
     // esp_log_level_set("*", ESP_LOG_DEBUG);
     // esp_log_level_set("*", ESP_LOG_WARN);
     esp_log_level_set("updateSpeed", ESP_LOG_NONE);
+    esp_log_level_set("updateUI", ESP_LOG_VERBOSE);
     esp_log_level_set("P4_UART", ESP_LOG_NONE);
     esp_log_level_set("VCAN_RX", ESP_LOG_NONE);
     // esp_log_level_set("P4_OTA", ESP_LOG_INFO);
@@ -131,7 +132,7 @@ extern "C" void app_main(void)
     // ---------------------------------------------------------
     // 2. Initialize Native VCAN Receiver & Modules INSTEAD of GaugePacket
     // ---------------------------------------------------------
-    vcan_receiver_init();
+    vcan::Receiver::instance().init();
     main_cluster_init();  // Registers PGN callbacks for this gauge module
 
     // ---------------------------------------------------------

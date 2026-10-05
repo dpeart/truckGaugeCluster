@@ -1,6 +1,9 @@
 #include "updateUI.h"
-#include "small_gauge.h"
+#include "small_gauge.h" // per-gauge module(s)
 #include <math.h>
+#include <stdlib.h>
+#include "lvgl.h" // ensure LVGL types are available for update helpers
+#include "ui.h"   // your objects/screen state headers (adjust to your project)
 
 // Helper for Linear Interpolation
 static inline float lerp(float a, float b, float f)
@@ -14,30 +17,33 @@ static int32_t cached_battery = -999;
 
 void update_iat_meter(int32_t new_val)
 {
-    if (abs(new_val - cached_iat) > UPDATE_THRESHOLD)
+    int32_t display_val = new_val / INT_SCALING; // Convert 5000->50°F, 20000->200°F
+
+    // Check delta against actual integer display degrees
+    if (abs(display_val - cached_iat) >= 1)
     {
-        int32_t display_val = new_val / INT_SCALING; // e.g., 7243 -> 72°F
         lv_meter_set_indicator_value(objects.iat, screen_main_state.iat_temp, display_val);
-        cached_iat = new_val;
+        cached_iat = display_val;
     }
 }
 
 void update_egt_meter(int32_t new_val)
 {
-    if (abs(new_val - cached_egt) > UPDATE_THRESHOLD)
+    int32_t display_val = new_val / INT_SCALING; // Convert 20000->200°F, 140000->1400°F
+
+    if (abs(display_val - cached_egt) >= 1)
     {
-        int32_t display_val = new_val / INT_SCALING; // e.g., 7243 -> 72°F
         lv_meter_set_indicator_value(objects.egt, screen_main_state.egt_temp, display_val);
-        cached_egt = new_val;
+        cached_egt = display_val;
     }
 }
 
 void update_battery_arc(int32_t new_val)
 {
-    // Convert raw backend value (0 - 1600) to match LVGL arc range (0 - 16)
-    int32_t display_val = (new_val + 5) / 100;
+    // Divide by 10 to get tenths of a volt (1150 raw -> 115 [11.5V])
+    int32_t display_val = new_val / 10;
 
-    if (abs(display_val - cached_battery) > UPDATE_THRESHOLD)
+    if (display_val != cached_battery)
     {
         lv_arc_set_value(objects.battery, display_val);
         cached_battery = display_val;
@@ -52,7 +58,4 @@ void gauge_ui_update(bool is_stale)
     // Call per-gauge draw functions while LVGL is locked by the caller.
     // Each gauge module performs its own smoothing and calls the update_* helpers above.
     small_gauge_draw();
-
-    // Optional: global stale indicator (if you want a single indicator)
-    // if (is_stale) { show_global_stale_indicator(true); } else { show_global_stale_indicator(false); }
 }
