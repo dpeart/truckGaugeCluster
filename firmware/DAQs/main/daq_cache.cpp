@@ -145,9 +145,9 @@ static esp_err_t read_univin_card(daq_cache_t *cache)
 
     float ambientBaroPsi = getAmbientBaroPsi(cache->gpsAltitude, cache->gpsFix);
 
-    cache->oilPressure = static_cast<int16_t>(calculatePressure5BAR(static_cast<float>(oil_mv), ambientBaroPsi));
-    cache->fuelPressure = static_cast<int16_t>(calculatePressure5BAR(static_cast<float>(fuel_mv), ambientBaroPsi));
-    cache->boostPressure = static_cast<int16_t>(calculatePressure5BAR(static_cast<float>(boost_mv), ambientBaroPsi));
+    cache->oilPressure = static_cast<int16_t>(calculatePressure5BAR(static_cast<float>(oil_mv), ambientBaroPsi) * INT_SCALING);
+    cache->fuelPressure = static_cast<int16_t>(calculatePressure5BAR(static_cast<float>(fuel_mv), ambientBaroPsi) * INT_SCALING);
+    cache->boostPressure = static_cast<int16_t>(calculatePressure5BAR(static_cast<float>(boost_mv), ambientBaroPsi) * INT_SCALING);
     return ESP_OK;
 }
 
@@ -285,7 +285,7 @@ static void inject_debug_simulation(daq_cache_t *cache)
 
     cache->oilPressure = scale_sine_float(rad_main, 10.0f, 90.0f) * INT_SCALING;
     cache->fuelPressure = scale_sine_float(rad_off1, 20.0f, 70.0f) * INT_SCALING;
-    cache->boostPressure = scale_sine_float(rad_main, 0.0f, 30.0f) * INT_SCALING;
+    cache->boostPressure = scale_sine_float(rad_main, 0.0f, 60.0f) * INT_SCALING;
     cache->batteryLevel = scale_sine_float(rad_main, 10.0f, 14.7f) * INT_SCALING;
 
     cache->coolantTemp = scale_sine_float(rad_main, 150.0f, 250.0f) * INT_SCALING;
