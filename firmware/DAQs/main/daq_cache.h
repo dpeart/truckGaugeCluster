@@ -94,6 +94,8 @@ esp_err_t daq_cache_get(daq_cache_t *out_cache);
  */
 void daq_cache_reset_circuit_breakers(void);
 
+float getAmbientBaroPsi(uint16_t altitudeMeters, uint8_t gpsFix);
+
 #ifdef __cplusplus
 }
 #endif

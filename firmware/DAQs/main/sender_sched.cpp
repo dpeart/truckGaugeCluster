@@ -1,17 +1,14 @@
-// sender_sched.cpp
 #include "sender_sched.h"
 #include "vcan_protocol.h"
-#include "DFRobot_GNSS.h"
+#include "vcan_sender.h"
+#include "daq_cache.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>      // for llround
 #include <stdint.h>
 
 #include "Globals.h"
-#include "vcan_sender.h"
-#include "daq_cache.h"
 
 static const char *TAG = "sender_sched";
 #define MAX_PGNS 32
@@ -53,7 +50,6 @@ void sender_sched_register(uint32_t pgn, uint8_t priority, uint32_t min_interval
     ESP_LOGI(TAG, "registered PGN 0x%04X prio=%u interval=%ums", (unsigned)pgn, priority, (unsigned)min_interval_ms);
 }
 
-// comparator: lower numeric priority value = higher priority. Tie-break by oldest last_sent_ms.
 static int cmp_sched(const void *a, const void *b)
 {
     const sched_entry_t *pa = (const sched_entry_t *)a;
@@ -67,99 +63,126 @@ static int cmp_sched(const void *a, const void *b)
     return 0;
 }
 
-/* Build and send the PGN using existing vcan_send_* helpers.
-   Reads a clean, thread-safe snapshot from the DAQ cache layer before building payloads.
-*/
-static void send_pgn_now(uint32_t pgn)
+void send_pgn_now(uint32_t pgn)
 {
-    // Snapshot the central DAQ cache atomically
-    daq_cache_t cache;
-    if (daq_cache_get(&cache) != ESP_OK) {
-        ESP_LOGW(TAG, "Failed to get DAQ cache snapshot for PGN 0x%04X", (unsigned)pgn);
-        return;
+    auto &sender = vcan::Sender::instance();
+
+    // Retrieve thread-safe DAQ cache snapshot
+    daq_cache_t cache{};
+    if (daq_cache_get(&cache) != ESP_OK)
+    {
+        return; // Cache lock or retrieval failed
     }
-
-    // Snapshot cache values into locals for dispatching
-    uint16_t local_rpm    = cache.rpm;
-    int local_speed       = cache.speed;
-    int local_gear        = cache.gearPosition;
-    int local_coolant     = cache.coolantTemp;
-
-    int16_t local_oilP    = cache.oilPressure;
-    int16_t local_fuelP   = cache.fuelPressure;
-    int16_t local_boostP  = cache.boostPressure;
-    int16_t local_batt    = cache.batteryLevel;
-
-    int16_t local_oilT    = cache.oilTemp;
-    int16_t local_transT  = cache.transTemp;
-    int16_t local_ambient = cache.ambientTemp;
-    int16_t local_iaT     = cache.iaTemp;
-
-    int32_t local_EGTemp  = cache.egTemp;
-    int16_t local_fuelLvl = cache.fuelLevel;
-    uint16_t local_dig    = cache.digitalPins;
-
-    uint16_t local_cruiseActive = cache.cruiseActive;
-    uint16_t local_cruiseSet    = cache.cruiseSetValue;
-    uint32_t local_odo          = cache.odometerTenths;
 
     switch (pgn)
     {
     case PGN_HEARTBEAT:
     {
+        pgn_heartbeat_t msg{};
         static uint8_t hb_seq = 0;
-        hb_seq++;
-        uint32_t now = now_ms();
-        vcan_send_heartbeat(hb_seq, now);
+        msg.seq = ++hb_seq;
+        msg.protocol_version = 1;
+        msg.uptime_ms = now_ms();
+        sender.send(msg);
         break;
     }
-
     case PGN_ENGINE_CORE:
-        vcan_send_engine_core((uint16_t)local_rpm, (int16_t)local_speed, (int16_t)local_gear, (int16_t)local_coolant);
+    {
+        pgn_engine_core_t msg{};
+        msg.rpm          = (uint16_t)cache.rpm;          // [0..1]
+        msg.speed        = (int16_t)cache.speed;         // [2..3]
+        msg.gear_position = (int16_t)cache.gearPosition; // [4..5]
+        msg.coolant_temp = (int16_t)cache.coolantTemp;   // [6..7]
+        sender.send(msg);
         break;
-
+    }
     case PGN_PRESSURES:
-        vcan_send_pressures(local_oilP, local_fuelP, local_boostP, local_batt);
+    {
+        pgn_pressures_t msg{};
+        msg.oil_pressure  = (int16_t)cache.oilPressure;  // [0..1]
+        msg.fuel_pressure = (int16_t)cache.fuelPressure; // [2..3]
+        msg.boost_pressure = (int16_t)cache.boostPressure;// [4..5]
+        msg.battery_level = (int16_t)cache.batteryLevel; // [6..7]
+        sender.send(msg);
         break;
-
+    }
     case PGN_TEMPS:
-        vcan_send_temps(local_oilT, local_transT, local_ambient, local_iaT);
+    {
+        pgn_temps_t msg{};
+        msg.oil_temp     = (int16_t)cache.oilTemp;     // [0..1]
+        msg.trans_temp   = (int16_t)cache.transTemp;   // [2..3] Fixed!
+        msg.ambient_temp = (int16_t)cache.ambientTemp; // [4..5]
+        msg.ia_temp      = (int16_t)cache.iaTemp;      // [6..7]
+        sender.send(msg);
         break;
-
+    }
     case PGN_EXHAUST_DIG:
-        vcan_send_exhaust_dig(local_EGTemp, local_fuelLvl, local_dig);
+    {
+        pgn_exhaust_dig_t msg{};
+        msg.eg_temp      = (int32_t)cache.egTemp;      // [0..3]
+        msg.fuel_level   = (int16_t)cache.fuelLevel;   // [6..7]
+        msg.digital_pins = (uint16_t)cache.digitalPins; // [8..9]
+        sender.send(msg);
         break;
-
+    }
     case PGN_CRUISE_ODO:
-        vcan_send_cruise_odo(local_cruiseActive, local_cruiseSet, local_odo);
+    {
+        pgn_cruise_odo_t msg{};
+        msg.cruise_active    = 0;                             // [0..1]
+        msg.cruise_set_value = 0;                             // [2..3]
+        msg.odometer_tenths  = (uint32_t)cache.odometerTenths;// [4..7]
+        sender.send(msg);
         break;
-
+    }
     case PGN_GPS_POS:
-        vcan_send_gps_position(cache.lat, cache.lon);
-        ESP_LOGI(TAG, "Packing GPS POS: lat_i=%d, lon_i=%d", cache.lat, cache.lon);
+    {
+        pgn_gps_pos_t msg{};
+        msg.lat = cache.lat; // [0..3]
+        msg.lon = cache.lon; // [4..7]
+        sender.send(msg);
         break;
-
+    }
     case PGN_GPS_MOTION:
-        vcan_send_gps_motion((uint32_t)cache.gpsSpeed, cache.gpsAltitude, cache.headingDeg);
+    {
+        pgn_gps_motion_t msg{};
+        msg.gps_speed    = (uint32_t)cache.gpsSpeed;   // [0..3]
+        msg.gps_altitude = (uint16_t)cache.gpsAltitude;// [4..5]
+        msg.heading_deg  = (int16_t)cache.headingDeg;  // [6..7]
+        sender.send(msg);
         break;
-
+    }
     case PGN_GPS_STATUS:
-        vcan_send_gps_status(cache.gpsFix, cache.gpsSatCount, cache.compass4);
-        ESP_LOGI(TAG, "Sending GPS_STATUS: fix=%d sat=%d compass=\"%.4s\"", 
-                 cache.gpsFix, cache.gpsSatCount, cache.compass4);
+    {
+        pgn_gps_status_t msg{};
+        msg.gps_fix       = cache.gpsFix;                       // [0]
+        msg.gps_sat_count = cache.gpsSatCount;                 // [1]
+        memcpy(msg.compass4, cache.compass4, sizeof(msg.compass4)); // [2..5]
+        sender.send(msg);
         break;
-
+    }
     case PGN_GNSS_TIME:
-        ESP_LOGI(TAG, "Sending GNSS_TIME: %04d-%02d-%02d %02d:%02d:%02d", 
-                 cache.gnssYear, cache.gnssMonth, cache.gnssDay, 
-                 cache.gnssHour, cache.gnssMinute, cache.gnssSecond);
-
-        vcan_send_gnss_time(cache.gnssYear, cache.gnssMonth, cache.gnssDay, 
-                            cache.gnssHour, cache.gnssMinute, cache.gnssSecond);
+    {
+        pgn_gnss_time_t msg{};
+        msg.year   = cache.gnssYear;   // [0..1]
+        msg.month  = cache.gnssMonth;  // [2]
+        msg.day    = cache.gnssDay;    // [3]
+        msg.hour   = cache.gnssHour;   // [4]
+        msg.minute = cache.gnssMinute; // [5]
+        msg.second = cache.gnssSecond; // [6]
+        msg.flags  = 0;                // [7]
+        sender.send(msg);
         break;
-
+    }
+    // case PGN_IMU_DYNAMICS:
+    // {
+    //     pgn_imu_dynamics_t msg{};
+    //     msg.accel_x = (int16_t)cache.accelX; // [0..1]
+    //     msg.accel_y = (int16_t)cache.accelY; // [2..3]
+    //     msg.accel_z = (int16_t)cache.accelZ; // [4..5]
+    //     sender.send(msg);
+    //     break;
+    // }
     default:
-        ESP_LOGI(TAG, "send_pgn_now: unhandled PGN 0x%04X", (unsigned)pgn);
         break;
     }
 }
@@ -168,7 +191,6 @@ void sender_sched_tick(void)
 {
     uint32_t now = now_ms();
 
-    // Build candidate list
     sched_entry_t candidates[MAX_PGNS];
     int cand_count = 0;
     for (int i = 0; i < s_count; ++i)
@@ -185,10 +207,8 @@ void sender_sched_tick(void)
     if (cand_count == 0)
         return;
 
-    // sort candidates by priority then age
     qsort(candidates, cand_count, sizeof(sched_entry_t), cmp_sched);
 
-    // send up to N packets this tick to avoid bursts
     const int MAX_SEND_PER_TICK = 3;
     int sends = 0;
 
@@ -198,7 +218,6 @@ void sender_sched_tick(void)
 
         send_pgn_now(pgn);
 
-        // update master table's last_sent_ms
         for (int i = 0; i < s_count; ++i)
         {
             if (s_table[i].pgn == pgn)

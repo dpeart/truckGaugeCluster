@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <limits.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include "driver/gpio.h"
-#include "driver/i2c_master.h"
+#include "driver/i2c.h"
 
 #include "esp_log.h"
 #include <esp_timer.h>
@@ -30,42 +29,45 @@ static const char *TAG = "GaugeCluster";
 
 bool DEBUG_SIMULATION_MODE = true;
 
-// -------------------- GLOBAL STATE --------------------
-uint64_t previousMillis = 0;
-
-// Global I2C bus handle
-i2c_master_bus_handle_t bus_handle = NULL;
-
-// -------------------- Small helpers --------------------
-static inline int16_t clamp_int32_to_int16(int32_t v) {
-    if (v > INT16_MAX) return INT16_MAX;
-    if (v < INT16_MIN) return INT16_MIN;
-    return (int16_t)v;
-}
-
-static inline uint16_t clamp_uint32_to_uint16(uint32_t v) {
-    if (v > UINT16_MAX) return UINT16_MAX;
-    return (uint16_t)v;
-}
-
-// -------------------- I2C init --------------------
+// -------------------- Legacy I2C Init --------------------
 static void i2c_master_init(void)
 {
-    i2c_master_bus_config_t bus_config = {
-        .i2c_port = I2C_NUM_0,
-        .sda_io_num = (gpio_num_t)I2C_MASTER_SDA_IO,
-        .scl_io_num = (gpio_num_t)I2C_MASTER_SCL_IO,
-        .clk_source = I2C_CLK_SRC_DEFAULT,
-        .glitch_ignore_cnt = 7,
-        .intr_priority = 0,     // 0 = driver selects default priority
-        .trans_queue_depth = 0, // 0 = default queue depth (not using async)
-        .flags = {
-            .enable_internal_pullup = true,
-            .allow_pd = 0, // 0 = keep power domain alive in light sleep
-        },
-    };
+    i2c_config_t conf = {};
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = (gpio_num_t)I2C_MASTER_SDA_IO;
+    conf.scl_io_num = (gpio_num_t)I2C_MASTER_SCL_IO;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.master.clk_speed = I2C_MASTER_FREQ_HZ;
 
-    ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
+    ESP_ERROR_CHECK(i2c_param_config(I2C_MASTER_NUM, &conf));
+    ESP_ERROR_CHECK(i2c_driver_install(I2C_MASTER_NUM, conf.mode, 0, 0, 0));
+}
+
+// -------------------- Legacy I2C Scanner --------------------
+void scanI2CBus(void)
+{
+    ESP_LOGI("I2C_SCAN", "Scanning I2C bus...");
+    int devices_found = 0;
+
+    for (uint8_t addr = 1; addr < 127; addr++) {
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_stop(cmd);
+
+        esp_err_t ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, pdMS_TO_TICKS(50));
+        i2c_cmd_link_delete(cmd);
+
+        if (ret == ESP_OK) {
+            ESP_LOGI("I2C_SCAN", "Found device at address: 0x%02X", addr);
+            devices_found++;
+        }
+    }
+
+    if (devices_found == 0) {
+        ESP_LOGW("I2C_SCAN", "No I2C devices found!");
+    }
 }
 
 // -------------------- ESP-NOW INIT --------------------
@@ -102,54 +104,23 @@ void initEspNow(void)
         ESP_LOGI(TAG, "ESP-NOW peer added successfully");
     }
 
-    if (vcan_init_transmitter() != ESP_OK) {
-        ESP_LOGW(TAG, "vcan_init_transmitter failed");
+    if (vcan::Sender::instance().init() != ESP_OK) {
+        ESP_LOGW(TAG, "vcan::Sender init failed");
     }
 }
 
-void scanI2CBus(i2c_master_bus_handle_t bus)
-{
-    ESP_LOGI("I2C_SCAN", "Scanning I2C bus...");
-    int devices_found = 0;
-
-    for (uint8_t addr = 1; addr < 127; addr++) {
-        esp_err_t ret = i2c_master_probe(bus, addr, 50);
-        if (ret == ESP_OK) {
-            ESP_LOGI("I2C_SCAN", "Found device at address: 0x%02X", addr);
-            devices_found++;
-        }
-    }
-
-    if (devices_found == 0) {
-        ESP_LOGW("I2C_SCAN", "No I2C devices found!");
-    }
-}
-
-#include "esp_log.h"
-
-// Place this at the top of app_main() before driver initializations
 void configure_log_levels(void)
 {
-    // 1. Global default: Only show Warnings and Errors across the system
     esp_log_level_set("*", ESP_LOG_WARN);
-
-    // 2. Main Application Tags
-    esp_log_level_set("GaugeCluster",    ESP_LOG_INFO);  // main.cpp app state
-    esp_log_level_set("DAQ_CACHE",       ESP_LOG_VERBOSE);  // Cache updates & circuit breakers
-
-    // 3. System Schedulers & vCAN Communication
-    esp_log_level_set("sender_sched",    ESP_LOG_VERBOSE);  // Set to ESP_LOG_INFO for tx debugging
-
-    // 4. Hardware Component Drivers
-    esp_log_level_set("mcp960x",         ESP_LOG_NONE);  // Thermocouple driver logging
-
-    // 5. Test/Scratchpad Modules (Kept quiet during standard runs)
+    esp_log_level_set("GaugeCluster",    ESP_LOG_INFO);
+    esp_log_level_set("DAQ_CACHE",       ESP_LOG_VERBOSE);
+    esp_log_level_set("sender_sched",    ESP_LOG_NONE);
+    esp_log_level_set("mcp960x",         ESP_LOG_NONE);
     esp_log_level_set("GNSS_TEST",       ESP_LOG_NONE);
     esp_log_level_set("ADC_TEST",        ESP_LOG_NONE);
     esp_log_level_set("RTD_TEST",        ESP_LOG_NONE);
     esp_log_level_set("MAIN_TEST",       ESP_LOG_NONE);
     esp_log_level_set("MERGED_SYSTEM",   ESP_LOG_NONE);
-
     esp_log_level_set("VCAN_RX",         ESP_LOG_VERBOSE);
     esp_log_level_set("VCAN-SENDER",     ESP_LOG_VERBOSE);
 }
@@ -157,15 +128,13 @@ void configure_log_levels(void)
 // -------------------- MAIN --------------------
 extern "C" void app_main(void)
 {
-  // Apply granular tag log levels
     configure_log_levels();
 
     i2c_master_init();
-    scanI2CBus(bus_handle);
+    scanI2CBus();
     initEspNow();
     initInterruptHandlers();
 
-    // Initialize DAQ Cache System
     if (daq_cache_init() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize DAQ Cache!");
     }
@@ -184,70 +153,15 @@ extern "C" void app_main(void)
     sender_sched_register(PGN_GPS_STATUS, CAN_PRIORITY_LOW, 1000);  // 1s
     sender_sched_register(PGN_GNSS_TIME, CAN_PRIORITY_HIGH, 1000);  // 1s
 
-    previousMillis = esp_timer_get_time();
-
     while (true)
     {
-        uint64_t now = esp_timer_get_time();
-
-        // 1. Poll DAQ boards off-mutex and commit snapshot
+        // 1. Sample hardware off-mutex and update cache snapshot
         daq_cache_update();
 
-        // 2. Transmission tick every 16ms (~60Hz)
-        if (now - previousMillis >= 16000ULL)
-        {
-            previousMillis = now;
+        // 2. Tick scheduler (sole owner of vCAN frame packing and transmission)
+        sender_sched_tick();
 
-            // Fetch thread-safe DAQ snapshot under fast mutex lock
-            daq_cache_t daq;
-            if (daq_cache_get(&daq) != ESP_OK) {
-                vTaskDelay(1);
-                continue; 
-            }
-
-            // Extract & Clamp Snapshot Data safely
-            int16_t send_rpm      = clamp_int32_to_int16(daq.rpm);
-            int16_t send_speed    = clamp_int32_to_int16(daq.speed);
-            int16_t send_gear     = clamp_int32_to_int16(daq.gearPosition);
-            int16_t send_coolant  = clamp_int32_to_int16(daq.coolantTemp);
-
-            int16_t send_oil      = clamp_int32_to_int16(daq.oilPressure);
-            int16_t send_fuel     = clamp_int32_to_int16(daq.fuelPressure);
-            int16_t send_boost    = clamp_int32_to_int16(daq.boostPressure);
-            int16_t send_batt     = clamp_int32_to_int16(daq.batteryLevel);
-
-            int16_t send_oiltemp  = clamp_int32_to_int16(daq.oilTemp);
-            int16_t send_transt   = clamp_int32_to_int16(daq.transTemp);
-            int16_t send_ambient  = clamp_int32_to_int16(daq.ambientTemp);
-            int16_t send_iat      = clamp_int32_to_int16(daq.iaTemp);
-
-            int32_t send_egt      = daq.egTemp;
-            int16_t send_fuellvl  = clamp_int32_to_int16(daq.fuelLevel);
-            uint16_t send_dig     = daq.digitalPins;
-
-            int16_t ax            = clamp_int32_to_int16(daq.accelX);
-            int16_t ay            = clamp_int32_to_int16(daq.accelY);
-            int16_t az            = clamp_int32_to_int16(daq.accelZ);
-
-            uint16_t cruise_act   = daq.cruiseActive;
-            uint16_t cruise_set   = daq.cruiseSetValue;
-            uint32_t odo_tenths   = daq.odometerTenths;
-
-            // Transmit scaled vCAN Frames
-            vcan_send_engine_core(send_rpm, send_speed, send_gear, send_coolant);
-            vcan_send_pressures(send_oil, send_fuel, send_boost, send_batt);
-            vcan_send_temps(send_oiltemp, send_transt, send_ambient, send_iat);
-            vcan_send_exhaust_dig(send_egt, send_fuellvl, send_dig);
-            vcan_send_imu_dynamics(ax, ay, az);
-            vcan_send_cruise_odo(cruise_act, cruise_set, odo_tenths);
-            vcan_send_gps_position(daq.lat, daq.lon);
-            vcan_send_gps_motion(daq.gpsSpeed, daq.gpsAltitude, daq.headingDeg);
-            vcan_send_gps_status(daq.gpsFix, daq.gpsSatCount, daq.compass4);
-
-            // Execute priority scheduler
-            sender_sched_tick();
-        }
-
-        vTaskDelay(1);
+        // 3. Yield to FreeRTOS (~10ms cadence)
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }

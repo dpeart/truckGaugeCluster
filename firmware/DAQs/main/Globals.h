@@ -9,66 +9,66 @@
 #define X4
 
 extern bool DEBUG_SIMULATION_MODE;
- #define INT_SCALING 100 // Scale down from backend resolution (scaled by 100) to match meter range
- 
+#define INT_SCALING 100 // Scale down from backend resolution (scaled by 100) to match meter range
+
 // ---------------------------------------------------------
 // I2C Addresses
 // ---------------------------------------------------------
-#define I2C_ODOMETER_ADR   0x50
-#define I2C_GNSS_ADR       0x20
-#define DIG_CARD           0x27
-#define RTD_CARD           0x40
-#define ADC_CARD           0x58
-#define I2C_EGT_ADR        0x67
-#define I2C_ACCEL_ADR      0x68
+#define I2C_ODOMETER_ADR 0x50
+#define I2C_GNSS_ADR 0x20
+#define DIG_CARD 0x27
+#define RTD_CARD 0x40
+#define ADC_CARD 0x58
+#define I2C_EGT_ADR 0x67
+#define I2C_ACCEL_ADR 0x68
 
-#define I2C_BATTERY_ADR    0x48
+#define I2C_BATTERY_ADR 0x48
 
 // ---------------------------------------------------------
 // Digital Input Card Channels
 // ---------------------------------------------------------
-#define DIG_OVER_DRIVE     1
-#define DIG_TCC            2
-#define DIG_LEFT           3
-#define DIG_RIGHT          4
-#define DIG_BRAKE          5
-#define DIG_HEAD_LOW       6
-#define DIG_HEAD_HIGH      7
-#define DIG_RUNNING        8
-#define DIG_WATER_FUEL     9
-#define DIG_LOW_WASHER     10
-#define DIG_CRUISE_ON      11
-#define DIG_CRUISE_SET     12
-#define DIG_CRUISE_RESUME  13
-#define DIG_BRAKE_LIGHT    14
-#define DIG_IGNITION       15
+#define DIG_OVER_DRIVE 1
+#define DIG_TCC 2
+#define DIG_LEFT 3
+#define DIG_RIGHT 4
+#define DIG_BRAKE 5
+#define DIG_HEAD_LOW 6
+#define DIG_HEAD_HIGH 7
+#define DIG_RUNNING 8
+#define DIG_WATER_FUEL 9
+#define DIG_LOW_WASHER 10
+#define DIG_CRUISE_ON 11
+#define DIG_CRUISE_SET 12
+#define DIG_CRUISE_RESUME 13
+#define DIG_BRAKE_LIGHT 14
+#define DIG_IGNITION 15
 
 // ---------------------------------------------------------
 // ESP32 GPIO Pins (converted from Arduino macros)
 // ---------------------------------------------------------
 static const gpio_num_t PWM_SPEED = GPIO_NUM_13;
-static const gpio_num_t PWM_TACH  = GPIO_NUM_19;
+static const gpio_num_t PWM_TACH = GPIO_NUM_19;
 
-static const gpio_num_t SHUTDOWN  = GPIO_NUM_14;
+static const gpio_num_t SHUTDOWN = GPIO_NUM_14;
 
 // ---------------------------------------------------------
 // ADC Card Channels
 // ---------------------------------------------------------
-#define ADC_GEAR           2
-#define ADC_TPS            3
+#define ADC_GEAR 2
+#define ADC_TPS 3
 #define ADC_BOOST_PRESSURE 10
-#define ADC_OIL_PRESSURE   12
-#define ADC_FUEL_PRESSURE  14
-#define ADC_FUEL_LEVEL     4
+#define ADC_OIL_PRESSURE 12
+#define ADC_FUEL_PRESSURE 14
+#define ADC_FUEL_LEVEL 4
 
 // ---------------------------------------------------------
 // RTD Card Channels
 // ---------------------------------------------------------
-#define RTD_IA_TEMP        1
-#define RTD_OIL_TEMP       2
-#define RTD_TRANS_TEMP     3
-#define RTD_COOLANT_TEMP   4
-#define RTD_AMBIENT_TEMP   5
+#define RTD_IA_TEMP 1
+#define RTD_OIL_TEMP 2
+#define RTD_TRANS_TEMP 3
+#define RTD_COOLANT_TEMP 4
+#define RTD_AMBIENT_TEMP 5
 
 // ---------------------------------------------------------
 // Scaling
@@ -134,3 +134,6 @@ extern int batteryLevel;
 
 // Timing
 extern uint64_t previousMillis;
+
+// Default Goshen, VA altitude (~1,400 feet / 426 meters)
+constexpr float GOSHEN_ALTITUDE_FT = 1400.0f;
