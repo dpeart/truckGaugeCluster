@@ -43,7 +43,7 @@ static const char *TAG = "MAIN";
 
 // Define stringification helpers
 #define STRINGIFY(x) #x
-#define TOSTRING(x)  STRINGIFY(x)
+#define TOSTRING(x) STRINGIFY(x)
 
 static void lvgl_task(void *arg)
 {
@@ -98,8 +98,12 @@ void gauge_task(void *arg)
             was_stale = is_stale;
         }
 
+        // 1. Fetch payloads and compute smooth state outside the mutex lock
+        small_gauge_update();
+
+        // 2. Lock LVGL strictly for quick UI updates
         lvgl_lock();
-        gauge_ui_update(is_stale);
+        gauge_ui_update(is_stale); // calls small_gauge_draw()
         lvgl_unlock();
 
         vTaskDelay(pdMS_TO_TICKS(16));
@@ -181,10 +185,10 @@ extern "C" void app_main(void)
         1);
 
     espnow_receiver_init(1);
-    
+
     // Direct C++ Singleton Initialization
     vcan::Receiver::instance().init();
-    
+
     small_gauge_init();
 
     xTaskCreatePinnedToCore(

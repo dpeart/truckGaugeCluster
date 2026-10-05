@@ -20,6 +20,12 @@ void small_gauge_deinit(void);
  * @brief Performs local smoothing and updates UI meters/arcs.
  *        Must be called with the LVGL mutex held.
  */
+void small_gauge_update(void);
+
+/**
+ * @brief Draw the small gauge UI elements.
+ *        Must be called with the LVGL mutex held.
+ */
 void small_gauge_draw(void);
 
 #ifdef __cplusplus

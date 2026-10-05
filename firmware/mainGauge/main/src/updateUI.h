@@ -9,6 +9,7 @@ extern "C" {
 
 void main_cluster_init(void);
 void main_cluster_deinit(void);
+void main_cluster_update(void);
 void gauge_ui_update(bool is_stale);
 
 // --- New Speed Accessor for StatsModule ---

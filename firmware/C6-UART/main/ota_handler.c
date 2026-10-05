@@ -116,7 +116,7 @@ static esp_err_t ota_post_handler(httpd_req_t *req)
         uart_send_frame(CMD_C6_UPLOAD_BEGIN, (uint8_t *)&total_len, sizeof(total_len));
         
         ESP_LOGI(TAG, "Waiting for P4 initializing OTA session...");
-        if (!wait_for_ack(5000))
+        if (!wait_for_ack(15000))
         {
             ESP_LOGE(TAG, "P4 failed to initialize session");
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "P4 Initialization Timeout");

@@ -75,21 +75,6 @@ static void setup_mdns(void)
 }
 
 // -----------------------------------------------------------------------------
-// IP event handler: start mDNS once STA has IP
-// -----------------------------------------------------------------------------
-static void ip_event_handler(void *arg,
-                             esp_event_base_t event_base,
-                             int32_t event_id,
-                             void *event_data)
-{
-    if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
-    {
-        ESP_LOGI(TAG, "IP_EVENT_STA_GOT_IP received, starting mDNS");
-        setup_mdns();
-    }
-}
-
-// -----------------------------------------------------------------------------
 // HTTP server + OTA handler (only for CONNECTED / C6/P4 OTA)
 // -----------------------------------------------------------------------------
 static void start_webserver(void)
@@ -120,6 +105,24 @@ static void stop_webserver(void)
         httpd_stop(server);
         server = NULL;
         ESP_LOGI(TAG, "HTTP server stopped");
+    }
+}
+
+static void ip_event_handler(void *arg,
+                             esp_event_base_t event_base,
+                             int32_t event_id,
+                             void *event_data)
+{
+    if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
+    {
+        ESP_LOGI(TAG, "IP_EVENT_STA_GOT_IP received, starting mDNS and Webserver");
+        setup_mdns();
+
+        // Start the web server only when an IP address is obtained
+        if (s_wifi_state == APP_WIFI_STATE_CONNECTED)
+        {
+            start_webserver();
+        }
     }
 }
 
@@ -370,7 +373,6 @@ static void set_wifi_mode(app_wifi_state_t state)
             s_provisioning_active = false;
         }
 
-        start_webserver();
         break;
     }
 }

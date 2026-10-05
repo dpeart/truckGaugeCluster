@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include "esp_err.h"
 
-#define MAX_PAYLOAD 2048
+#define MAX_PAYLOAD 4096
 
 // Unified Protocol Command Opcodes
 typedef enum {

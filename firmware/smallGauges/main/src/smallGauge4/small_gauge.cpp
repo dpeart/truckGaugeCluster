@@ -14,17 +14,21 @@ static float s_oil_lerp = 0.0f;
 static float s_boost_lerp = 0.0f;
 static const float LERP_ALPHA = 0.15f;
 
-void small_gauge_init(void)
+extern "C" void small_gauge_init(void)
 {
     ESP_LOGI(TAG, "initialized (boost+oil)");
 }
 
-void small_gauge_deinit(void)
+extern "C" void small_gauge_deinit(void)
 {
     ESP_LOGI(TAG, "deinitialized");
 }
 
-void small_gauge_draw(void)
+/**
+ * @brief Step 1: Poll VCAN receiver & compute LERP values + logging.
+ * @note Call this OUTSIDE of the lvgl_lock() window.
+ */
+extern "C" void small_gauge_update(void)
 {
     auto& receiver = vcan::Receiver::instance();
     uint8_t buf[256];
@@ -52,8 +56,6 @@ void small_gauge_draw(void)
                 ESP_LOGI(TAG, "OIL  -> Raw: %d | Scaled: %.2f | Lerp: %.2f | Passing to UI: %d",
                          msg->oil_temp, oil_val, s_oil_lerp, static_cast<int32_t>(s_oil_lerp));
             }
-
-            update_oil_temp_meter(static_cast<int32_t>(s_oil_lerp));
         }
     }
 
@@ -72,8 +74,16 @@ void small_gauge_draw(void)
                 ESP_LOGI(TAG, "BOOST -> Raw: %d | Scaled: %.2f | Lerp: %.2f | Passing to UI: %d",
                          msg->boost_pressure, boost_val, s_boost_lerp, static_cast<int32_t>(s_boost_lerp));
             }
-
-            update_boost_pressure_meter(static_cast<int32_t>(s_boost_lerp));
         }
     }
+}
+
+/**
+ * @brief Step 2: Apply smoothed values directly to LVGL widgets.
+ * @note Call this INSIDE the lvgl_lock() window.
+ */
+extern "C" void small_gauge_draw(void)
+{
+    update_oil_temp_meter(static_cast<int32_t>(s_oil_lerp));
+    update_boost_pressure_meter(static_cast<int32_t>(s_boost_lerp));
 }

@@ -80,6 +80,8 @@ void runLVGLTask(void *arg)
         // Check if the VCAN data feed is stale (e.g., no heartbeat for 2000ms)[cite: 20]
         bool is_stale = vcan::Receiver::instance().isStale(2000);
 
+        main_cluster_update(); // Poll VCAN receiver & compute smoothed values (OUTSIDE lvgl_lock)
+
         // Lock LVGL for thread-safe rendering
         bsp_display_lock(-1); // or lvgl_port_lock(-1) depending on your BSP setup
 
@@ -110,7 +112,8 @@ extern "C" void app_main(void)
     esp_log_level_set("updateUI", ESP_LOG_VERBOSE);
     esp_log_level_set("P4_UART", ESP_LOG_NONE);
     esp_log_level_set("VCAN_RX", ESP_LOG_NONE);
-    // esp_log_level_set("P4_OTA", ESP_LOG_INFO);
+    esp_log_level_set("P4_OTA", ESP_LOG_VERBOSE);
+    esp_log_level_set("P4_MODES", ESP_LOG_VERBOSE);
     // esp_log_level_set("UI", ESP_LOG_INFO);
     // esp_log_level_set("StatsModule", ESP_LOG_INFO);
     // esp_log_level_set("P4_TELEM", ESP_LOG_INFO);

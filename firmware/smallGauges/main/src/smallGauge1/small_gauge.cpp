@@ -28,7 +28,11 @@ extern "C" void small_gauge_deinit(void)
     ESP_LOGI(TAG, "deinitialized");
 }
 
-extern "C" void small_gauge_draw(void)
+/**
+ * @brief Step 1: Poll VCAN receiver & compute LERP values.
+ * @note Call this OUTSIDE of the lvgl_lock() window.
+ */
+extern "C" void small_gauge_update(void)
 {
     auto& receiver = vcan::Receiver::instance();
     uint8_t buf[256];
@@ -43,7 +47,6 @@ extern "C" void small_gauge_draw(void)
         {
             const auto *msg = reinterpret_cast<const pgn_engine_core_t *>(buf);
             s_coolant_lerp = lerp_f(s_coolant_lerp, static_cast<float>(msg->coolant_temp), LERP_ALPHA);
-            update_coolant_meter(static_cast<int32_t>(s_coolant_lerp));
         }
     }
 
@@ -55,7 +58,6 @@ extern "C" void small_gauge_draw(void)
         {
             const auto *msg = reinterpret_cast<const pgn_pressures_t *>(buf);
             s_oil_lerp = lerp_f(s_oil_lerp, static_cast<float>(msg->oil_pressure), LERP_ALPHA);
-            update_oil_pressure_meter(static_cast<int32_t>(s_oil_lerp));
         }
     }
 
@@ -67,7 +69,17 @@ extern "C" void small_gauge_draw(void)
         {
             const auto *msg = reinterpret_cast<const pgn_exhaust_dig_t *>(buf);
             s_fuel_lerp = lerp_f(s_fuel_lerp, static_cast<float>(msg->fuel_level), LERP_ALPHA);
-            update_fuel_arc(static_cast<int32_t>(s_fuel_lerp));
         }
     }
+}
+
+/**
+ * @brief Step 2: Apply smoothed values directly to LVGL widgets.
+ * @note Call this INSIDE the lvgl_lock() window.
+ */
+extern "C" void small_gauge_draw(void)
+{
+    update_coolant_meter(static_cast<int32_t>(s_coolant_lerp));
+    update_oil_pressure_meter(static_cast<int32_t>(s_oil_lerp));
+    update_fuel_arc(static_cast<int32_t>(s_fuel_lerp));
 }

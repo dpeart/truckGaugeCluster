@@ -28,7 +28,11 @@ extern "C" void small_gauge_deinit(void)
     ESP_LOGI(TAG, "deinitialized");
 }
 
-extern "C" void small_gauge_draw(void)
+/**
+ * @brief Step 1: Poll VCAN receiver & compute LERP values.
+ * @note Call this OUTSIDE of the lvgl_lock() window.
+ */
+extern "C" void small_gauge_update(void)
 {
     auto& receiver = vcan::Receiver::instance();
     uint8_t buf[256];
@@ -43,7 +47,6 @@ extern "C" void small_gauge_draw(void)
         {
             const auto *msg = reinterpret_cast<const pgn_temps_t *>(buf);
             s_iat_lerp = lerp_f(s_iat_lerp, static_cast<float>(msg->ia_temp), LERP_ALPHA);
-            update_iat_meter(static_cast<int32_t>(s_iat_lerp));
         }
     }
 
@@ -55,7 +58,6 @@ extern "C" void small_gauge_draw(void)
         {
             const auto *msg = reinterpret_cast<const pgn_exhaust_dig_t *>(buf);
             s_egt_lerp = lerp_f(s_egt_lerp, static_cast<float>(msg->eg_temp), LERP_ALPHA);
-            update_egt_meter(static_cast<int32_t>(s_egt_lerp));
         }
     }
 
@@ -67,7 +69,17 @@ extern "C" void small_gauge_draw(void)
         {
             const auto *msg = reinterpret_cast<const pgn_pressures_t *>(buf);
             s_batt_lerp = lerp_f(s_batt_lerp, static_cast<float>(msg->battery_level), LERP_ALPHA);
-            update_battery_arc(static_cast<int32_t>(s_batt_lerp));
         }
     }
+}
+
+/**
+ * @brief Step 2: Apply smoothed values directly to LVGL widgets.
+ * @note Call this INSIDE the lvgl_lock() window.
+ */
+extern "C" void small_gauge_draw(void)
+{
+    update_iat_meter(static_cast<int32_t>(s_iat_lerp));
+    update_egt_meter(static_cast<int32_t>(s_egt_lerp));
+    update_battery_arc(static_cast<int32_t>(s_batt_lerp));
 }
